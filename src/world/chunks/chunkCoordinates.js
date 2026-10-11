@@ -57,23 +57,6 @@ export function getChunkWindowCoords(centerCoord, radius = 1) {
   return coords
 }
 
-export function getPlayerPrefabWindowCoords(worldBlock, chunkSize) {
-  const centerCoord = getRenderChunkCoord(worldBlock.x, worldBlock.z, chunkSize)
-  const localX = worldBlock.x - centerCoord.x * chunkSize
-  const localZ = worldBlock.z - centerCoord.z * chunkSize
-  const xOffset = localX < chunkSize * 0.5 ? -1 : 1
-  const zOffset = localZ < chunkSize * 0.5 ? -1 : 1
-  const xCoords = [centerCoord.x, centerCoord.x + xOffset].sort((a, b) => a - b)
-  const zCoords = [centerCoord.z, centerCoord.z + zOffset].sort((a, b) => a - b)
-
-  return [
-    { x: xCoords[0], z: zCoords[0] },
-    { x: xCoords[1], z: zCoords[0] },
-    { x: xCoords[0], z: zCoords[1] },
-    { x: xCoords[1], z: zCoords[1] }
-  ]
-}
-
 export function getChunkBounds(coord, chunkSize, cellSize, padding = 0) {
   const origin = getRenderChunkOrigin(coord, chunkSize)
   const minX = origin.x * cellSize - padding

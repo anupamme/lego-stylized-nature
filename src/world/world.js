@@ -56,6 +56,7 @@ export default class World {
         this.lavaBrickRenderer = null
         this.prefabPlacer = null
         this.prefabRegistry = null
+        this.prefabShadowBounds = null
         this.playerAircraft = null
         this.terrainChunkManager = null
         this.prefabWarmup = null
@@ -108,6 +109,7 @@ export default class World {
 
             const prefabRegistry = new PrefabRegistry(resources)
             this.prefabRegistry = prefabRegistry
+            if (useChunkTerrain) this.measurePrefabShadowBounds()
 
             if (useChunkTerrain) {
                 this.terrainChunkManager = new ChunkManager({
@@ -311,9 +313,42 @@ export default class World {
             const chunkWorldSize = this.config.chunks.size * this.config.terrain.cellSize
             this.experience.environment.followPlayerShadow?.(
                 this.playerAircraft.state.position,
-                { halfExtent: chunkWorldSize }
+                { halfExtent: chunkWorldSize, envelope: this.getPrefabShadowEnvelope() }
             )
             this.terrainChunkManager.update(x, z, this.experience.worldCamera.instance)
+        }
+    }
+
+    measurePrefabShadowBounds() {
+        const bounds = { horizontal: 0, minY: 0, maxY: 0 }
+        const box = new THREE.Box3()
+        for (const [id, entry] of Object.entries(this.prefabRegistry?.manifest ?? {})) {
+            for (let index = 0; index < (entry.variants?.length ?? 0); index++) {
+                const scene = this.prefabRegistry.getVariantAsset(id, index)?.scene
+                if (!scene) continue
+                box.setFromObject(scene)
+                if (box.isEmpty()) continue
+                bounds.horizontal = Math.max(bounds.horizontal, Math.hypot(
+                    Math.max(Math.abs(box.min.x), Math.abs(box.max.x)),
+                    Math.max(Math.abs(box.min.z), Math.abs(box.max.z))
+                ))
+                bounds.minY = Math.min(bounds.minY, box.min.y)
+                bounds.maxY = Math.max(bounds.maxY, box.max.y)
+            }
+        }
+        this.prefabShadowBounds = bounds
+    }
+
+    getPrefabShadowEnvelope() {
+        if ((this.config.chunks?.debugSpacing ?? 0) !== 0) return undefined
+        const bounds = this.prefabShadowBounds ?? { horizontal: 0, minY: 0, maxY: 0 }
+        const chunkWorldSize = this.config.chunks.size * this.config.terrain.cellSize
+        const windowRadius = this.config.chunks.windowRadius ?? 1
+        const { maxHeight, waterLevel, layerHeight } = this.config.terrain
+        return {
+            radius: (windowRadius + 1) * chunkWorldSize + bounds.horizontal,
+            minY: Math.min(0, layerHeight + bounds.minY),
+            maxY: (Math.max(maxHeight, waterLevel) + 1) * layerHeight + bounds.maxY
         }
     }
 

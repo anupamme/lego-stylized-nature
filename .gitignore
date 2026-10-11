@@ -4,4 +4,6 @@ dist
 .vercel
 .superpowers/
 .worktrees/
-test
+/test/*
+!/test/prefabReveal.test.js
+!/test/prefabRenderPreparation.test.js

@@ -73,6 +73,7 @@ export const worldConfig = {
     halo: 8,
     windowRadius: 1,
     maxPendingBuildsPerFrame: 1,
+    maxPrefabBuildsPerFrame: 1,
     visibilityPadding: 1,
     /** World-unit gap between adjacent chunks. */
     debugSpacing: 0

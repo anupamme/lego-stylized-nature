@@ -38,7 +38,7 @@ export default class WorldCamera {
         this.trackballControls.staticMoving = false
         this.trackballControls.dynamicDampingFactor = 0.2
         this.trackballControls.minZoom = 0.5
-        this.trackballControls.maxZoom = 2
+        this.trackballControls.maxZoom = 3
         this.trackballControls.target.copy(this.controls.target)
     }
 

@@ -5,7 +5,7 @@ import HeightfieldAO from '../bricks/HeightfieldAO.js'
 import PrefabPlacer from '../prefabs/PrefabPlacer.js'
 import {
   getChunkWindowCoords,
-  getPlayerPrefabWindowCoords,
+  getChunkBounds,
   getRenderChunkCoord,
   getRenderChunkKey,
   getRenderChunkOrigin,
@@ -57,6 +57,8 @@ export default class ChunkManager {
     this.pendingPrefabBuildQueue = []
     this.pendingPrefabBuildKeys = new Set()
     this.centerCoord = null
+    this.schedulingPosition = null
+    this.movementDirection = { x: 0, z: 0 }
     this.bootstrapped = false
 
     for (const slot of this.slots) {
@@ -78,6 +80,8 @@ export default class ChunkManager {
     this.pendingPrefabBuildKeys.clear()
     this.freeSlots = [...this.slots]
     this.centerCoord = null
+    this.schedulingPosition = null
+    this.movementDirection = { x: 0, z: 0 }
     this.bootstrapped = false
   }
 
@@ -128,6 +132,7 @@ export default class ChunkManager {
     const worldBlock = this.getStableWorldBlockFromPosition(worldX, worldZ)
     const centerCoord = getRenderChunkCoord(worldBlock.x, worldBlock.z, this.chunkSize)
 
+    this.updateSchedulingPosition(worldX, worldZ)
     this.centerCoord = centerCoord
     this.bootstrapped = true
     this.loadCoordNow(centerCoord)
@@ -159,13 +164,57 @@ export default class ChunkManager {
 
     const worldBlock = this.getStableWorldBlockFromPosition(worldX, worldZ)
     const nextCenterCoord = getRenderChunkCoord(worldBlock.x, worldBlock.z, this.chunkSize)
+    this.updateSchedulingPosition(worldX, worldZ)
 
+    let immediateBuilds = 0
     if (!this.coordsEqual(this.centerCoord, nextCenterCoord)) {
-      this.reconcileRequiredWindow(nextCenterCoord)
+      immediateBuilds = this.reconcileRequiredWindow(nextCenterCoord)
     }
 
-    const builtChunks = this.buildPendingChunks()
-    this.updateVisibility(worldBlock, { buildPrefabs: builtChunks === 0 })
+    this.buildPendingChunks(Math.max(0, this.maxPendingBuildsPerFrame - immediateBuilds))
+    this.updateVisibility(worldBlock)
+  }
+
+  updateSchedulingPosition(worldX, worldZ) {
+    const previous = this.schedulingPosition
+    const dx = previous ? worldX - previous.x : 0
+    const dz = previous ? worldZ - previous.z : 0
+    const distance = Math.hypot(dx, dz)
+    this.movementDirection.x = distance > 0 ? dx / distance : 0
+    this.movementDirection.z = distance > 0 ? dz / distance : 0
+    this.schedulingPosition = { x: worldX, z: worldZ }
+  }
+
+  getBuildPriority(coord) {
+    const position = this.schedulingPosition ?? { x: 0, z: 0 }
+    const bounds = getChunkBounds(coord, this.chunkSize, this.cellSize)
+    const spacingX = coord.x * this.debugSpacing
+    const spacingZ = coord.z * this.debugSpacing
+    const dx = Math.max(bounds.minX + spacingX - position.x, 0,
+      position.x - bounds.maxX - spacingX)
+    const dz = Math.max(bounds.minZ + spacingZ - position.z, 0,
+      position.z - bounds.maxZ - spacingZ)
+    const centerX = (bounds.minX + bounds.maxX) * 0.5 + spacingX - position.x
+    const centerZ = (bounds.minZ + bounds.maxZ) * 0.5 + spacingZ - position.z
+
+    return {
+      distanceSquared: dx * dx + dz * dz,
+      ahead: centerX * this.movementDirection.x + centerZ * this.movementDirection.z
+    }
+  }
+
+  compareBuildCoords(a, b) {
+    const aPriority = this.getBuildPriority(a)
+    const bPriority = this.getBuildPriority(b)
+    const distanceDifference = aPriority.distanceSquared - bPriority.distanceSquared
+    if (Math.abs(distanceDifference) > 1e-9) {
+      return distanceDifference
+    }
+    const directionDifference = bPriority.ahead - aPriority.ahead
+    if (Math.abs(directionDifference) > 1e-9) {
+      return directionDifference
+    }
+    return a.x - b.x || a.z - b.z
   }
 
   coordsEqual(a, b) {
@@ -197,11 +246,14 @@ export default class ChunkManager {
     this.pendingKeys = new Set(this.pendingQueue.map((coord) => getRenderChunkKey(coord)))
 
     const centerKey = getRenderChunkKey(nextCenterCoord)
+    let immediateBuilds = 0
     if (!this.activeSlots.has(centerKey)) {
       this.loadCoordNow(nextCenterCoord)
+      immediateBuilds = 1
     }
 
     this.queuePendingCoords(requiredCoords)
+    return immediateBuilds
   }
 
   queuePendingCoords(coords) {
@@ -235,10 +287,11 @@ export default class ChunkManager {
     this.pendingPrefabBuildKeys.delete(key)
   }
 
-  buildPendingChunks() {
+  buildPendingChunks(limit = this.maxPendingBuildsPerFrame) {
+    this.pendingQueue.sort((a, b) => this.compareBuildCoords(a, b))
     let built = 0
 
-    while (built < this.maxPendingBuildsPerFrame && this.pendingQueue.length > 0) {
+    while (built < limit && this.pendingQueue.length > 0) {
       const coord = this.pendingQueue.shift()
       this.pendingKeys.delete(getRenderChunkKey(coord))
       if (this.loadCoordNow(coord)) {
@@ -257,6 +310,10 @@ export default class ChunkManager {
       }
       return keep
     })
+    this.pendingPrefabBuildQueue.sort((a, b) => this.compareBuildCoords(
+      this.activeSlots.get(a).coord,
+      this.activeSlots.get(b).coord
+    ))
 
     let built = 0
     while (built < this.maxPrefabBuildsPerFrame && this.pendingPrefabBuildQueue.length > 0) {
@@ -360,9 +417,7 @@ export default class ChunkManager {
   updateVisibility(worldBlock, { buildPrefabs = true } = {}) {
     const placementEnabled = this.config.placement?.enablePrefabs !== false
       || this.config.placement?.enableTrees !== false
-    const prefabActiveKeys = new Set(
-      getPlayerPrefabWindowCoords(worldBlock, this.chunkSize).map((coord) => getRenderChunkKey(coord))
-    )
+    const prefabActiveKeys = new Set(this.activeSlots.keys())
 
     for (const [key, slot] of this.activeSlots) {
       slot.show()
@@ -372,19 +427,13 @@ export default class ChunkManager {
         continue
       }
 
-      if (prefabActiveKeys.has(key)) {
-        if (slot.prefabsBuiltForKey === key) {
-          slot.setPrefabsVisible?.(true)
-        } else if (!this.pendingPrefabBuildKeys.has(key)) {
-          slot.setPrefabsVisible?.(false)
-          this.pendingPrefabBuildQueue.push(key)
-          this.pendingPrefabBuildKeys.add(key)
-        }
-        continue
+      if (slot.prefabsBuiltForKey === key) {
+        slot.setPrefabsVisible?.(true)
+      } else if (!this.pendingPrefabBuildKeys.has(key)) {
+        slot.setPrefabsVisible?.(false)
+        this.pendingPrefabBuildQueue.push(key)
+        this.pendingPrefabBuildKeys.add(key)
       }
-
-      slot.setPrefabsVisible?.(false)
-      this.removePendingPrefabBuild(key)
     }
 
     if (placementEnabled && buildPrefabs) {
