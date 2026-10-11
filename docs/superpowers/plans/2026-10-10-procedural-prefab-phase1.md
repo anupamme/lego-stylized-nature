@@ -2,13 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 搭建程序化 prefab 基础设施（LEGO 单位、零件、组装、registry 接入），并以 `landFlower` 为试点替换 `flower.glb`（3452 面 → ≤ 220 面）。
+**Goal:** 搭建程序化 prefab 基础设施（LEGO 单位、零件、组装、registry 接入），并以 `landFlower` 为试点替换 `flower.glb`，优先保持外观一致，再减少面数（原 GLB 3452 面，参考预算 600 面，可按视觉需要调整）。
 
 **Architecture:** 三层：`legoUnits.js` / `legoColors.js` 定义尺寸与色板；`prefabParts.js` 提供低面零件与 `makePrefabScene`（按槽合并、对齐凸点原点、使用 `createLegoMaterial`）；`PrefabRegistry` 对 `builder` 变体调用构建函数并缓存、负责释放。下游 `PrefabPlacer` / `PrefabPipelineWarmup` 不改。
 
 **Tech Stack:** three 0.185（`three/webgpu`、`three/addons/utils/BufferGeometryUtils.js`），Node 24 内置 test runner。
 
 **Spec:** `docs/procedural-prefab-plan.md`
+
+**验收调整（2026-10-10）：** 按用户要求放宽面数预算；分段数与小倒角由轮廓和高光需要决定。参考预算不作为测试硬上限，自动化仅要求模型非空且面数低于原 GLB，并保留 mesh、索引、尺寸、放置与释放等约束。当前花为 206 面，无需为了用满预算增加细节；后续细化先做视觉对比。具体规则以 Spec 第 3.4–3.5、5.2 节为准。
+
+**实施状态（2026-10-10）：** Task 1–4 的代码和测试已落地；LEGO 零件、花 builder、registry 缓存/释放和 `landFlower` 切换完成，视觉检查后删除旧 GLB/source。花为 206 面，同视口同机位场景三角面降低 6.78%，drawCalls 保持 327。全量测试 276 项中 266 通过，10 项既有失败未变化；生产构建通过。渲染记录见 Spec 第 4 节。以下提交步骤未执行，改动保留在工作区供审阅。
 
 ## Global Constraints
 
@@ -47,7 +51,7 @@
 | Delete `public/model/prefab/flower.glb` | |
 | Create `test/prefabParts.test.js`、`test/prefabBuilders.test.js`、`test/prefabRegistry.test.js` | |
 | Modify `test/experienceLifecycle.test.js:84-94` | 释放顺序包含 registry |
-| Modify `docs/procedural-prefab-plan.md` | 花的面数预算 160 → 220、主色更正 |
+| Modify `docs/procedural-prefab-plan.md` | 花的参考预算 600（可调整）、主色更正 |
 
 ---
 
@@ -361,7 +365,7 @@ import * as THREE from 'three/webgpu'
 import { prefabBuilders } from '../src/world/prefabs/builders/index.js'
 import WorldMaterials from '../src/world/WorldMaterials.js'
 
-const TRIANGLE_BUDGETS = { flower: 220 }
+const SOURCE_TRIANGLES = { flower: 3452 }
 // Bounding box of the GLB each builder replaces (docs/procedural-prefab-plan.md §2.2).
 const REFERENCE_SIZES = { flower: [0.29, 0.21, 0.28] }
 
@@ -376,10 +380,10 @@ function countTriangles(scene) {
 }
 
 for (const [name, build] of Object.entries(prefabBuilders)) {
-  test(`${name} builder stays within its triangle budget`, () => {
+  test(`${name} builder costs less than its GLB`, () => {
     const triangles = countTriangles(build())
-    assert.ok(TRIANGLE_BUDGETS[name] !== undefined, `${name} has no triangle budget`)
-    assert.ok(triangles <= TRIANGLE_BUDGETS[name], `${name} has ${triangles} triangles`)
+    assert.ok(SOURCE_TRIANGLES[name] !== undefined, `${name} has no source triangle baseline`)
+    assert.ok(triangles > 0 && triangles < SOURCE_TRIANGLES[name], `${name} has ${triangles} triangles`)
   })
 
   test(`${name} builder sits on the stud origin near its GLB size`, () => {
@@ -495,7 +499,7 @@ Expected: 5 项全部 PASS。若尺寸断言失败，只调整 `STEMS` 的 `tilt
 - [ ] **Step 6: 更新计划书**
 
 `docs/procedural-prefab-plan.md` 中：
-- 3.5 节 `landFlower` 行：目标上限 `160` 改为 `220`，构建思路改为「6 段底座圆板 + 3 根 4 段茎 + 2 片扁盒叶（root）；3 个 5 瓣星形花板 + 凸点（InstanceColor）」。
+- 3.5 节 `landFlower` 行：采用可调整的参考预算 `600`，保留三朵花、叶片与凸点，按视觉需要补圆润花瓣、茎和边缘；当前实际 206 面。
 - 2.2 节 `flower.glb` 主色 `LegoGreen #0d4414` 改为 `LegoGreen #418d4f（sRGB）`。
 
 - [ ] **Step 7: 全量测试无新增失败**

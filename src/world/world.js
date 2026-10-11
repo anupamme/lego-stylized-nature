@@ -344,6 +344,7 @@ export default class World {
         }
         this.terrainChunkManager?.dispose()
         this.terrainChunkManager = null
+        this.prefabRegistry?.dispose?.()
         this.materials?.dispose()
         this.materials = null
         this.brickGeometry?.dispose()

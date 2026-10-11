@@ -11,7 +11,7 @@ export const biomePrefabs = {
     category: 'waterPlant',
     placement: { surface: 'water' },
     variants: [
-      { source: 'waterDuckweedModel', weight: 1 }
+      { builder: 'duckweed', weight: 1 }
     ],
     randomRotation: true
   },
@@ -19,7 +19,7 @@ export const biomePrefabs = {
     category: 'waterPlant',
     placement: { surface: 'water' },
     variants: [
-      { source: 'phragmitesModel', weight: 1 }
+      { builder: 'phragmites', weight: 1 }
     ],
     randomRotation: true
   },
@@ -44,8 +44,8 @@ export const biomePrefabs = {
     category: 'rock',
     placement: { surface: 'land', biomes: ['volcano'] },
     variants: [
-      { source: 'volcanoRockModel', weight: 0.3 },
-      { source: 'volcanoRock2Model', weight: 0.7 }
+      { builder: 'volcanoRock', weight: 0.3 },
+      { builder: 'volcanoRockSmall', weight: 0.7 }
     ],
     randomRotation: true,
     instanceColors: {
@@ -72,7 +72,7 @@ export const biomePrefabs = {
     category: 'plant',
     placement: { surface: 'land', biomes: ['desert'] },
     variants: [
-      { source: 'desertCactusModel', weight: 1 }
+      { builder: 'cactus', weight: 1 }
     ],
     randomRotation: true,
   },
@@ -88,7 +88,7 @@ export const biomePrefabs = {
     category: 'plant',
     placement: { surface: 'land', biomes: ['desert'] },
     variants: [
-      { source: 'deadBushModel', weight: 1 }
+      { builder: 'deadBush', weight: 1 }
     ],
     randomRotation: true
   },
@@ -96,9 +96,8 @@ export const biomePrefabs = {
     category: 'flora',
     placement: { surface: 'land' },
     variants: [
-      { source: 'landGrassModel', weight: 1 },
-      { source: 'landGrass2Model', weight: 1 },
-      { source: 'landGrass3Model', weight: 0.25 }
+      { builder: 'grassShort', weight: 2 },
+      { builder: 'grassTall', weight: 0.25 }
     ],
     randomRotation: true,
     biomeTints: {
@@ -111,7 +110,7 @@ export const biomePrefabs = {
     category: 'flora',
     placement: { surface: 'land' },
     variants: [
-      { source: 'landMushroom1Model', weight: 0.5 }
+      { builder: 'mushroom', weight: 0.5 }
     ],
     randomRotation: true,
     instanceColors: {
@@ -123,7 +122,7 @@ export const biomePrefabs = {
     category: 'flora',
     placement: { surface: 'land', biomes: ['forest', 'autumnForest'] },
     variants: [
-      { source: 'landFlowerModel', weight: 0.5 }
+      { builder: 'flower', weight: 0.5 }
     ],
     randomRotation: true,
     instanceColors: {
