@@ -81,7 +81,7 @@ export const worldConfig = {
     aircraft: {
       enabled: true,
       assetName: 'playerAircraftModel',
-      height: 3,
+      height: 7.2,
       scale: 1,
       thrust: 16,
       reverseThrust: 8,
