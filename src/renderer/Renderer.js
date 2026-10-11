@@ -11,6 +11,7 @@ import {
 import { smaa } from 'three/addons/tsl/display/SMAANode.js'
 import { createTiltShiftEffect } from './postprocessing/createTiltShiftEffect.js'
 import { installObjectResourceCleanup } from './installObjectResourceCleanup.js'
+import { installPrefabRenderPreparation } from './installPrefabRenderPreparation.js'
 import { TILT_SHIFT_DEFAULTS } from './postprocessing/tiltShiftConfig.js'
 import { createSpeedLinesEffect } from './postprocessing/createSpeedLinesEffect.js'
 import {
@@ -89,6 +90,7 @@ export default class Renderer {
     this.pipelineNodes = []
     this.initialized = false
     this.disposed = false
+    this.prefabPreparation = null
 
     this.postProcessingController = Object.freeze({
       setTiltShiftEnabled: (enabled) => {
@@ -218,10 +220,23 @@ export default class Renderer {
       throw new Error('[Renderer] Disposed during initialization')
     }
     this.objectResourceCleanup = installObjectResourceCleanup(this.instance)
+    this.prefabPreparation = installPrefabRenderPreparation(this.instance)
   }
 
   releaseSceneObjects(group) {
+    this.prefabPreparation?.releaseGroup(group)
     this.objectResourceCleanup?.releaseGroup(group)
+  }
+
+  async prepareVisiblePrefabs() {
+    // Rendering discovers the exact main and shadow RenderObjects. Preparing one
+    // pass may expose another, so drain until a complete render queues no work.
+    if (!this.prefabPreparation) return
+    do {
+      await this.prefabPreparation.whenIdle()
+      if (this.disposed) return
+      this.render()
+    } while (this.prefabPreparation.metrics.pending > 0)
   }
 
   /**
@@ -267,6 +282,8 @@ export default class Renderer {
       return
     }
     this.disposed = true
+    this.prefabPreparation?.dispose()
+    this.prefabPreparation = null
     this.disposePipeline()
     // r185's dispose() calls setAnimationLoop(), which initializes an unready renderer.
     if (this.initialized) {

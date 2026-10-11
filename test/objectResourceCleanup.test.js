@@ -89,3 +89,91 @@ test('matrix arrays compile for pool capacity while draw count can grow and shri
   }
   mesh.dispose()
 })
+
+test('async compile builder stages use capacity and restore live count across yields and errors', async () => {
+  const { renderer } = fixture()
+  const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial(), 900)
+  mesh.count = 12
+  const observed = []
+  let resume
+  const waiting = new Promise(resolve => { resume = resolve })
+  renderer._nodes = {
+    _createNodeBuilder() {
+      return {
+        prebuild() { observed.push(mesh.count) },
+        flowNodeFromShaderStage() { observed.push(mesh.count) },
+        flowNode() { observed.push(mesh.count); throw new Error('stage failed') },
+        async buildAsync() {
+          this.prebuild()
+          this.flowNodeFromShaderStage()
+          await waiting
+          this.flowNodeFromShaderStage()
+          this.flowNode()
+        }
+      }
+    }
+  }
+  installObjectResourceCleanup(renderer)
+  const builder = renderer._nodes._createNodeBuilder({ object: mesh })
+  const build = builder.buildAsync()
+  assert.equal(mesh.count, 12)
+  mesh.count = 800
+  resume()
+  await assert.rejects(build, /stage failed/)
+  assert.deepEqual(observed, [900, 900, 900, 900])
+  assert.equal(mesh.count, 800)
+})
+
+test('native NodeBuilder async direct setup calls after the fragment yield compile full capacity', async () => {
+  const { renderer } = fixture()
+  const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial(), 32)
+  mesh.count = 3
+  const observed = []
+  renderer._nodes = {
+    _createNodeBuilder() {
+      const builder = new THREE.NodeBuilder(mesh, {}, {})
+      builder.prebuild = () => {}
+      builder.flowNodes.vertex.push({ build() { observed.push(mesh.count) } })
+      builder.flowNode = node => node.build(builder)
+      builder.buildCode = () => {}
+      builder.buildUpdateNodes = () => {}
+      return builder
+    }
+  }
+  installObjectResourceCleanup(renderer)
+  const builder = renderer._nodes._createNodeBuilder({ object: mesh })
+  const build = builder.buildAsync()
+  assert.equal(mesh.count, 3)
+  mesh.count = 10
+  await build
+  assert.deepEqual(observed, [32, 32, 32])
+  assert.equal(mesh.count, 10)
+})
+
+test('bundled WGSL async builder emits the full matrix capacity for a live pooled mesh', async () => {
+  const renderer = new THREE.WebGPURenderer({ canvas: { addEventListener() {}, removeEventListener() {} } })
+  const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(), new THREE.MeshStandardNodeMaterial(), 900)
+  mesh.count = 12
+  renderer._objects = { createRenderObject() {} }
+  renderer._attributes = { delete() {} }
+  renderer._nodes = {
+    _createNodeBuilder({ object }, material) {
+      // Use the bundled builder and TSL objects from the same public import.
+      // Mixing src/ and build/ copies gives separate global TSL stack state.
+      const builder = new THREE.WGSLNodeBuilder(object, renderer)
+      builder.material = material
+      builder.context.material = material
+      builder.scene = new THREE.Scene()
+      builder.camera = new THREE.PerspectiveCamera()
+      builder.getUniformBufferLimit = () => 65536
+      return builder
+    }
+  }
+  installObjectResourceCleanup(renderer)
+  const builder = renderer._nodes._createNodeBuilder({ object: mesh }, mesh.material)
+  const build = builder.buildAsync()
+  assert.equal(mesh.count, 12)
+  await build
+  assert.match(builder.vertexShader, /array<\s*mat4x4<f32>,\s*900\s*>/)
+  assert.equal(mesh.count, 12)
+})

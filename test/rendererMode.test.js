@@ -34,6 +34,35 @@ test('enabled postprocessing renders through the pipeline', () => {
   assert.deepEqual(calls, ['pipeline'])
 })
 
+test('startup drains prefab work discovered in successive main and shadow renders', async () => {
+  const renderer = Object.create(Renderer.prototype)
+  const metrics = { pending: 1 }
+  const calls = []
+  renderer.prefabPreparation = {
+    metrics,
+    async whenIdle() { calls.push('idle'); metrics.pending = 0 }
+  }
+  let renders = 0
+  renderer.render = () => {
+    calls.push('render')
+    if (++renders === 1) metrics.pending = 1
+  }
+  await renderer.prepareVisiblePrefabs()
+  assert.deepEqual(calls, ['idle', 'render', 'idle', 'render'])
+})
+
+test('renderer disposal cancels preparation before backend resources are released', () => {
+  const renderer = Object.create(Renderer.prototype)
+  const calls = []
+  renderer.initialized = true
+  renderer.prefabPreparation = { dispose: () => calls.push('cancel') }
+  renderer.disposePipeline = () => calls.push('pipeline')
+  renderer.instance = { dispose: () => calls.push('backend') }
+  renderer.dispose()
+  renderer.dispose()
+  assert.deepEqual(calls, ['cancel', 'pipeline', 'backend'])
+})
+
 test('reattaching and disposing the pipeline releases ScenePass, blur and both SMAA targets', () => {
   const previousImage = globalThis.Image
   globalThis.Image = class Image {}

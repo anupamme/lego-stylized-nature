@@ -86,11 +86,12 @@ test('World releases borrowers before shared materials and cloned geometry exact
   const calls = []
   world.children = [{ dispose: () => calls.push('child') }]
   world.terrainChunkManager = { dispose: () => calls.push('slots') }
+  world.prefabRegistry = { dispose: () => calls.push('registry') }
   world.materials = { dispose: () => calls.push('materials') }
   world.brickGeometry = { dispose: () => calls.push('geometry') }
   world.dispose()
   world.dispose()
-  assert.deepEqual(calls, ['child', 'slots', 'materials', 'geometry'])
+  assert.deepEqual(calls, ['child', 'slots', 'registry', 'materials', 'geometry'])
 })
 
 test('World disposed during asynchronous warmup releases the late result', async () => {

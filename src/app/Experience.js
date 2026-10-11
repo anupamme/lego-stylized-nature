@@ -49,7 +49,10 @@ export default class Experience {
             textures: 0,
             waterInstances: 0,
             chunkBuildMs: 0,
-            prefabBuildMs: 0
+            prefabBuildMs: 0,
+            prefabPreparePending: 0,
+            prefabPrepareMaxSliceMs: 0,
+            prefabPrepareFailed: 0
         }
         this.initTimings = {}
         this._gpuTimingPending = false
@@ -93,6 +96,7 @@ export default class Experience {
             this.worldCamera.instance,
             () => this.renderer.render()
         )
+        await this.renderer.prepareVisiblePrefabs?.()
         this.initTimings.warmupMs = performance.now() - worldReady
         this.initTimings.totalMs = performance.now() - started
         if (this.disposed) {
@@ -145,6 +149,7 @@ export default class Experience {
     updatePerformanceMetrics() {
         const renderer = this.renderer.instance
         const manager = this.world.terrainChunkManager
+        const preparation = this.renderer.prefabPreparation?.metrics
         Object.assign(this.performance, {
             drawCalls: renderer.info.render.drawCalls,
             triangles: renderer.info.render.triangles,
@@ -156,7 +161,10 @@ export default class Experience {
             chunkBuildMs: manager?.buildTimings?.totalMs ?? 0,
             prefabBuildMs: manager
                 ? Math.max(0, ...manager.slots.map((slot) => slot.prefabBuildMs ?? 0))
-                : 0
+                : 0,
+            prefabPreparePending: preparation?.pending ?? 0,
+            prefabPrepareMaxSliceMs: preparation?.maxSliceMs ?? 0,
+            prefabPrepareFailed: preparation?.failed ?? 0
         })
 
         if (!renderer.backend.trackTimestamp || this._gpuTimingPending) {
@@ -184,6 +192,7 @@ export default class Experience {
             dpr: window.devicePixelRatio,
             init: { ...this.initTimings },
             chunk: { ...manager?.buildTimings },
+            prefabPreparation: { ...this.renderer.prefabPreparation?.metrics },
             memory: { ...this.renderer.instance.info.memory },
             loadedChunks: manager?.activeSlots.size ?? 0,
             waterMeshes: manager

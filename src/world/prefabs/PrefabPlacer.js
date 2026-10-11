@@ -8,8 +8,7 @@ import {
     matchesInstanceColorMesh
 } from './prefabInstanceColor.js'
 import { getTerrainIterationBounds } from '../terrain/terrainMapBounds.js'
-
-const DEFAULT_PREFAB_CAPACITY = 512
+import { getPrefabCapacity } from './prefabCapacity.js'
 
 export default class PrefabPlacer {
     constructor({ config, biomeRegistry, prefabRegistry, materials }) {
@@ -162,6 +161,7 @@ export default class PrefabPlacer {
             }
 
             const mesh = new THREE.InstancedMesh(child.geometry, meshContext.material, transforms.length)
+            mesh.userData.streamingPrefab = true
             mesh.castShadow = true
             mesh.receiveShadow = true
             this.populateInstancedMesh(
@@ -192,9 +192,7 @@ export default class PrefabPlacer {
     }
 
     getPrefabCapacity(prefabEntry) {
-        const caps = this.config.placement?.prefabCapacity ?? {}
-        const category = prefabEntry?.category ?? 'default'
-        return caps[category] ?? caps.default ?? DEFAULT_PREFAB_CAPACITY
+        return getPrefabCapacity(this.config, prefabEntry)
     }
 
     resetBucketCounts() {
@@ -290,6 +288,8 @@ export default class PrefabPlacer {
         }
 
         const mesh = new THREE.InstancedMesh(geometry, material, capacity)
+        mesh.userData.streamingPrefab = true
+        mesh.userData.prefabBucketKey = bucketKey
         mesh.castShadow = true
         mesh.receiveShadow = true
         variantGroup.add(mesh)

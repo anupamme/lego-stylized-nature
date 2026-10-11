@@ -96,6 +96,36 @@ test('build reuses InstancedMesh objects across rebuilds', () => {
   assert.equal(firstMeshes.length, 1)
   assert.equal(secondMeshes.length, 1)
   assert.equal(firstMeshes[0], secondMeshes[0])
+  assert.equal(firstMeshes[0].userData.streamingPrefab, true)
+  assert.equal(firstMeshes[0].userData.prefabBucketKey, [...placer.meshBuckets.keys()][0])
+  placer.dispose()
+  placer.materials.dispose()
+})
+
+test('standalone variant instances are tagged for streamed renderer preparation', () => {
+  const prefabEntry = {
+    category: 'flora',
+    placement: { surface: 'land' },
+    variants: [{ source: 'grassModel' }]
+  }
+  const placer = createPlacer({ manifest: { grass: prefabEntry }, biomes: {} })
+  const group = placer.buildVariantInstances(
+    createVariantScene(),
+    [{ position: [0, 1, 0], rotationY: 0 }],
+    prefabEntry,
+    null,
+    'grass'
+  )
+  try {
+    const meshes = collectInstancedMeshes(group)
+    assert.equal(meshes.length, 1)
+    assert.equal(meshes[0].userData.streamingPrefab, true)
+    assert.equal(meshes[0].count, 1)
+  } finally {
+    group.traverse(mesh => mesh.isInstancedMesh && mesh.dispose())
+    placer.dispose()
+    placer.materials.dispose()
+  }
 })
 
 test('build hides stale instances by lowering mesh count', () => {

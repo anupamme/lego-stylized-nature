@@ -15,7 +15,10 @@ export function createPerformancePanel(debug, experience) {
         textures: 'Textures',
         waterInstances: 'Water instances',
         chunkBuildMs: 'Chunk build (ms)',
-        prefabBuildMs: 'Prefab build (ms)'
+        prefabBuildMs: 'Prefab build (ms)',
+        prefabPreparePending: 'Prefab prepare queue',
+        prefabPrepareMaxSliceMs: 'Prefab prepare max (ms)',
+        prefabPrepareFailed: 'Prefab prepare failed'
     }
     for (const [key, label] of Object.entries(labels)) {
         folder.addBinding(experience.performance, key, {

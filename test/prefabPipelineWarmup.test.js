@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import * as THREE from 'three/webgpu'
 import WorldMaterials from '../src/world/WorldMaterials.js'
+import PrefabPlacer from '../src/world/prefabs/PrefabPlacer.js'
 import {
   buildPrefabPipelineWarmupGroup,
   warmupPrefabPipelines
@@ -18,6 +19,10 @@ function createScene(meshName, material = new THREE.MeshBasicMaterial({ color: '
 function createRegistry(manifest, scenes) {
   return {
     manifest,
+    get(prefabId) {
+      const entry = manifest[prefabId]
+      return entry ? { id: prefabId, entry } : null
+    },
     getVariantAsset(prefabId, variantIndex) {
       const source = manifest[prefabId].variants[variantIndex].source
       return { scene: scenes[source] }
@@ -73,7 +78,8 @@ test('builds one-instance warmup meshes for prefab material modes', () => {
   })
 
   const materials = new WorldMaterials()
-  const group = buildPrefabPipelineWarmupGroup({ prefabRegistry: registry, materials })
+  const config = { placement: { prefabCapacity: { prop: 192, rock: 128, tree: 64, flora: 32 } } }
+  const group = buildPrefabPipelineWarmupGroup({ prefabRegistry: registry, materials, config })
   const meshes = collectWarmupMeshes(group)
   const modes = meshes.map((mesh) => mesh.userData.prefabWarmupMaterialMode).sort()
 
@@ -82,10 +88,69 @@ test('builds one-instance warmup meshes for prefab material modes', () => {
   assert.ok(modes.includes('tree'))
   assert.ok(modes.includes('instanceColor'))
   assert.ok(meshes.every((mesh) => mesh.count === 1))
+  assert.ok(meshes.every((mesh) => mesh.userData.streamingPrefab !== true))
+  for (const mesh of meshes) {
+    const expected = mesh.name.endsWith(':plain') ? 192
+      : mesh.name.endsWith(':rock') ? 128
+        : mesh.name.endsWith(':leaf') ? 64
+          : 32
+    assert.equal(mesh.instanceMatrix.count, expected)
+    if (mesh.instanceColor) assert.equal(mesh.instanceColor.count, expected)
+  }
   assert.ok(meshes.every((mesh) => !mesh.frustumCulled && mesh.castShadow && mesh.receiveShadow))
   assert.ok(meshes.filter((mesh) => mesh.instanceColor).length >= 2)
   group.traverse((mesh) => mesh.isInstancedMesh && mesh.dispose())
   materials.dispose()
+})
+
+test('warmup capacities match actual prefab pools for default and category settings', () => {
+  const cases = [
+    { category: 'flora', capacities: undefined, expected: 512 },
+    { category: 'flora', capacities: { default: 96 }, expected: 96 },
+    { category: 'flora', capacities: { default: 96, flora: 32 }, expected: 32 },
+    { category: undefined, capacities: { default: 64, flora: 32 }, expected: 64 },
+    { category: 'prop', capacities: { flora: 32 }, expected: 512 }
+  ]
+  for (const { category, capacities, expected } of cases) {
+    const materials = new WorldMaterials()
+    const manifest = {
+      grass: {
+        category,
+        placement: { surface: 'land' },
+        variants: [{ source: 'grassModel' }],
+        randomRotation: false
+      }
+    }
+    const registry = createRegistry(manifest, { grassModel: createScene('grass') })
+    const config = {
+      seed: 1,
+      terrain: { width: 1, depth: 1, cellSize: 1, layerHeight: 1, waterLevel: 0 },
+      placement: { prefabCapacity: capacities }
+    }
+    const placer = new PrefabPlacer({
+      config,
+      materials,
+      prefabRegistry: registry,
+      biomeRegistry: { get: () => ({ prefabs: [{ id: 'grass', density: 1 }] }) }
+    })
+    const group = buildPrefabPipelineWarmupGroup({ prefabRegistry: registry, materials, config })
+    try {
+      placer.build({
+        getBiomeCell: () => ({ biomeId: 'forest', weights: { forest: 1 } }),
+        getSurfaceCell: () => ({ height: 1, slope: 0, isWater: false, isShore: false, isLava: false })
+      })
+      const [actualMesh] = collectWarmupMeshes(placer.group)
+      const [warmupMesh] = collectWarmupMeshes(group)
+      assert.equal(actualMesh.instanceMatrix.count, expected)
+      assert.equal(warmupMesh.instanceMatrix.count, actualMesh.instanceMatrix.count)
+      assert.equal(warmupMesh.count, 1)
+      assert.equal(warmupMesh.userData.streamingPrefab, undefined)
+    } finally {
+      placer.dispose()
+      group.traverse(mesh => mesh.isInstancedMesh && mesh.dispose())
+      materials.dispose()
+    }
+  }
 })
 
 test('warmup compiles prefab group and removes it from the scene', async () => {
@@ -102,9 +167,12 @@ test('warmup compiles prefab group and removes it from the scene', async () => {
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera()
   let compiledGroupName = null
+  let compiledCapacity = null
   const renderer = {
     async compileAsync(compileScene) {
-      compiledGroupName = compileScene.children.find((child) => child.name === 'PrefabPipelineWarmup')?.name ?? null
+      const group = compileScene.getObjectByName('PrefabPipelineWarmup')
+      compiledGroupName = group?.name ?? null
+      compiledCapacity = collectWarmupMeshes(group)[0].instanceMatrix.count
     }
   }
 
@@ -113,12 +181,14 @@ test('warmup compiles prefab group and removes it from the scene', async () => {
     scene,
     camera,
     prefabRegistry: registry,
-    materials: new WorldMaterials()
+    materials: new WorldMaterials(),
+    config: { placement: { prefabCapacity: { prop: 48 } } }
   })
 
   assert.equal(result.compiled, true)
   assert.equal(result.meshCount, 1)
   assert.equal(compiledGroupName, 'PrefabPipelineWarmup')
+  assert.equal(compiledCapacity, 48)
   assert.equal(scene.children.some((child) => child.name === 'PrefabPipelineWarmup'), false)
 })
 

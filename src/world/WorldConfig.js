@@ -59,11 +59,11 @@ export const worldConfig = {
       default: 128,
       tree: 128,
       flora: 512,
-      rock: 256,
+      rock: 512,
       plant: 256,
-      waterAccent: 32,
+      waterAccent: 64,
       waterPlant: 64,
-      prop: 64
+      prop: 128
     }
   },
   chunks: {

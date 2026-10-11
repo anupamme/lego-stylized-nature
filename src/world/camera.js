@@ -30,7 +30,7 @@ export default class WorldCamera {
         this.controls.enablePan = false
         this.controls.enableZoom = false
         this.controls.minPolarAngle = 0
-        this.controls.maxPolarAngle = Math.PI / 4
+        this.controls.maxPolarAngle = Math.PI / 3
 
         this.trackballControls = new TrackballControls(this.instance, canvas)
         this.trackballControls.noRotate = true

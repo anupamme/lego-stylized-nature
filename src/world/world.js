@@ -323,6 +323,7 @@ export default class World {
             renderer,
             scene: this.scene,
             camera,
+            config: this.config,
             prefabRegistry: this.prefabRegistry,
             materials: this.materials,
             renderFrame,

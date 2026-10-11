@@ -7,7 +7,7 @@ import sources from '../src/assets/sources.js'
 test('flower and mushroom define instance color palettes', () => {
   assert.deepEqual(biomePrefabs.landMushroom.instanceColors, {
     meshNameSuffix: '_InstanceColor',
-    palette: ['#c9110e', '#0158b8', '#ea9202', '#03b1a0']
+    palette: ['#ff0000', '#0158b8', '#ea9202', '#03b1a0']
   })
   assert.deepEqual(biomePrefabs.landFlower.instanceColors, {
     meshNameSuffix: '_InstanceColor',
@@ -15,10 +15,12 @@ test('flower and mushroom define instance color palettes', () => {
   })
 })
 
-test('mushroom uses only its first model', () => {
+test('mushroom uses its builder', () => {
   assert.deepEqual(biomePrefabs.landMushroom.variants, [
-    { source: 'landMushroom1Model', weight: 1 }
+    { builder: 'mushroom', weight: 0.5 }
   ])
+  assert.equal(sources.some((source) =>
+    source.name === 'landMushroom1Model' || source.path === 'model/prefab/mushroom_1.glb'), false)
 })
 
 test('redundant mushroom sources and files are removed', () => {
