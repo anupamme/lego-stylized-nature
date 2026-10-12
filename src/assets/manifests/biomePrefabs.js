@@ -83,7 +83,7 @@ export const biomePrefabs = {
     category: 'plant',
     placement: { surface: 'land', biomes: ['desert'] },
     variants: [
-      { builder: 'deadBush', weight: 1 },
+      { source: 'deadBushModel', weight: 1 },
     ],
     randomRotation: true,
   },
