@@ -1,5 +1,3 @@
-import * as THREE from 'three/webgpu'
-
 export function extractBrickGeometry(gltf, cellSize) {
   let sourceMesh = null
   gltf?.scene?.traverse((child) => {

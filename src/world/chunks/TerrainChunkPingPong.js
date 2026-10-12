@@ -1,7 +1,7 @@
+import HeightfieldAO from '../bricks/HeightfieldAO.js'
+import LavaBrickRenderer from '../bricks/LavaBrickRenderer.js'
 import TerrainBrickRenderer from '../bricks/TerrainBrickRenderer.js'
 import WaterBrickRenderer from '../bricks/WaterBrickRenderer.js'
-import LavaBrickRenderer from '../bricks/LavaBrickRenderer.js'
-import HeightfieldAO from '../bricks/HeightfieldAO.js'
 import PrefabPlacer from '../prefabs/PrefabPlacer.js'
 import {
   coordsEqual,
@@ -9,7 +9,7 @@ import {
   getRenderChunkCoord,
   getRenderChunkOrigin,
   getWorldBlockFromPosition,
-  toLocalCell
+  toLocalCell,
 } from './chunkCoordinates.js'
 import ChunkRenderSlot from './ChunkRenderSlot.js'
 
@@ -23,7 +23,7 @@ export default class TerrainChunkPingPong {
     materials,
     parentGroup,
     biomeRegistry = null,
-    prefabRegistry = null
+    prefabRegistry = null,
   }) {
     this.config = config
     this.terrainGenerator = terrainGenerator
@@ -42,7 +42,7 @@ export default class TerrainChunkPingPong {
 
     this.slots = [
       this.createSlot(0, brickGeometry),
-      this.createSlot(1, brickGeometry)
+      this.createSlot(1, brickGeometry),
     ]
     this.activeIndex = 0
     this.playerCoord = null
@@ -56,11 +56,11 @@ export default class TerrainChunkPingPong {
     const prefabsEnabled = this.config.placement?.enablePrefabs !== false
     const prefabPlacer = prefabsEnabled && this.prefabRegistry && this.biomeRegistry
       ? new PrefabPlacer({
-        config: this.config,
-        biomeRegistry: this.biomeRegistry,
-        prefabRegistry: this.prefabRegistry,
-        materials: this.materials
-      })
+          config: this.config,
+          biomeRegistry: this.biomeRegistry,
+          prefabRegistry: this.prefabRegistry,
+          materials: this.materials,
+        })
       : null
 
     const waterEnabled = this.config.water?.enableWater !== false
@@ -71,22 +71,22 @@ export default class TerrainChunkPingPong {
       terrainRenderer: new TerrainBrickRenderer({
         config: this.config,
         brickGeometry,
-        materials: this.materials
+        materials: this.materials,
       }),
       heightfieldAO: new HeightfieldAO({ config: this.config }),
       prefabPlacer,
       waterRenderer: waterEnabled
         ? new WaterBrickRenderer({
-          config: this.config,
-          brickGeometry,
-          materials: this.materials
-        })
+            config: this.config,
+            brickGeometry,
+            materials: this.materials,
+          })
         : null,
       lavaRenderer: new LavaBrickRenderer({
         config: this.config,
         brickGeometry,
-        materials: this.materials
-      })
+        materials: this.materials,
+      }),
     })
   }
 
@@ -140,7 +140,7 @@ export default class TerrainChunkPingPong {
       activeCoord,
       localCell,
       this.chunkSize,
-      this.prefetchThreshold
+      this.prefetchThreshold,
     )
 
     if (coordsEqual(prefetchCoord, activeCoord)) {
@@ -160,7 +160,7 @@ export default class TerrainChunkPingPong {
     const terrainMap = this.terrainGenerator.generateChunk({
       origin,
       size: this.chunkSize,
-      halo: this.halo
+      halo: this.halo,
     })
     const placements = this.layeredTerrainBuilder.buildPlacements(terrainMap)
 
@@ -168,7 +168,7 @@ export default class TerrainChunkPingPong {
       coord,
       terrainMap,
       placements,
-      colorResolver: this.brickColorResolver
+      colorResolver: this.brickColorResolver,
     })
   }
 
@@ -182,7 +182,7 @@ export default class TerrainChunkPingPong {
   getDebugMaterials() {
     return {
       legoMaterial: this.materials.legoMaterial,
-      waterMaterial: this.materials.waterMaterial
+      waterMaterial: this.materials.waterMaterial,
     }
   }
 

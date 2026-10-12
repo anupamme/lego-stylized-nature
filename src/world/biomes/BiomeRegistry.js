@@ -1,6 +1,6 @@
-import forest from './definitions/forest.js'
 import autumnForest from './definitions/autumnForest.js'
 import desert from './definitions/desert.js'
+import forest from './definitions/forest.js'
 import volcano from './definitions/volcano.js'
 
 export default class BiomeRegistry {

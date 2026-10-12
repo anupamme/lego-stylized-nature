@@ -1,12 +1,13 @@
 import * as THREE from 'three/webgpu'
-import Experience from '../app/Experience.js'
 import { bootstrap } from '../app/bootstrap.js'
+import Experience from '../app/Experience.js'
+import sources from '../assets/sources.js'
 import World from '../world/world.js'
 import { worldConfig } from '../world/WorldConfig.js'
-import sources from '../assets/sources.js'
 
 // Opt-in real WebGPU checks. This page is absent from the production entry.
-if (!import.meta.env.DEV) throw new Error('Rendering validation requires the development server')
+if (!import.meta.env.DEV)
+  throw new Error('Rendering validation requires the development server')
 
 const output = document.querySelector('#results')
 const canvas = document.querySelector('canvas')
@@ -16,7 +17,10 @@ function record(result) {
   output.textContent = JSON.stringify(records, null, 2)
   console.info('[RenderingValidation]', JSON.stringify(result))
 }
-function assert(condition, message) { if (!condition) throw new Error(message) }
+function assert(condition, message) {
+  if (!condition)
+    throw new Error(message)
+}
 function validateMatrixCapacity(e) {
   const mesh = new THREE.InstancedMesh(e.world.brickGeometry, e.world.materials.waterMaterial, 900)
   mesh.frustumCulled = false
@@ -26,20 +30,21 @@ function validateMatrixCapacity(e) {
   let compiled
   objects.createRenderObject = function (...args) {
     const renderObject = create.apply(this, args)
-    if (renderObject.object === mesh) compiled = renderObject
+    if (renderObject.object === mesh)
+      compiled = renderObject
     return renderObject
   }
   e.scene.add(mesh)
   try {
     e.renderer.render()
     assert(compiled, 'Matrix probe did not render')
-    assert(/array<\s*mat4x4<f32>\s*,\s*900\s*>/.test(compiled.getNodeBuilderState().vertexShader),
-      'Matrix shader array follows the first draw count instead of the pool capacity')
+    assert(/array<\s*mat4x4<f32>\s*,\s*900\s*>/.test(compiled.getNodeBuilderState().vertexShader), 'Matrix shader array follows the first draw count instead of the pool capacity')
     mesh.count = 800
     e.renderer.render()
     assert(mesh.count === 800, 'Shader preparation changed the draw count')
     record({ name: 'instanced-matrix-capacity', firstDrawCount: 1, nextDrawCount: 800, compiledCapacity: 900 })
-  } finally {
+  }
+  finally {
     objects.createRenderObject = create
     e.scene.remove(mesh)
     mesh.dispose()
@@ -51,7 +56,8 @@ async function frames(e, count = 24) {
       try {
         e.update(timestamp)
         if (--count === 0) { e.renderer.instance.setAnimationLoop(null); resolve() }
-      } catch (error) { e.renderer.instance.setAnimationLoop(null); reject(error) }
+      }
+      catch (error) { e.renderer.instance.setAnimationLoop(null); reject(error) }
     })
   })
 }
@@ -96,8 +102,7 @@ document.querySelector('#run').addEventListener('click', async () => {
       for (let cycle = 0; cycle < 5; cycle++) {
         await frames(e, 120)
         memories.push({ ...e.renderer.instance.info.memory })
-        snapshots.push({ position: e.world.playerAircraft.state.position.toArray(), camera: e.worldCamera.instance.position.toArray(), target: e.worldCamera.controls.target.toArray(), chunkCenter: e.world.terrainChunkManager.centerCoord,
-          slots: e.world.terrainChunkManager.slots.map(s => ({ coord: s.coord, terrainCapacity: s.terrainRenderer.mesh?.instanceMatrix.count, terrainCount: s.terrainRenderer.mesh?.count, water: s.waterRenderer.instanceCount })) })
+        snapshots.push({ position: e.world.playerAircraft.state.position.toArray(), camera: e.worldCamera.instance.position.toArray(), target: e.worldCamera.controls.target.toArray(), chunkCenter: e.world.terrainChunkManager.centerCoord, slots: e.world.terrainChunkManager.slots.map(s => ({ coord: s.coord, terrainCapacity: s.terrainRenderer.mesh?.instanceMatrix.count, terrainCount: s.terrainRenderer.mesh?.count, water: s.waterRenderer.instanceCount })) })
         e.world.dispose()
         retiredWorlds.push({ ...e.renderer.instance.info.memory })
         if (cycle < 4) {
@@ -115,7 +120,8 @@ document.querySelector('#run').addEventListener('click', async () => {
         && m.attributesSize === retiredWorlds[0].attributesSize && m.uniformBuffers === retiredWorlds[0].uniformBuffers
         && m.programs === retiredWorlds[0].programs), 'Retired World retains GPU resources')
       await disposeAndRecord(e, 'default-experience-disposal')
-    } finally { e.dispose() }
+    }
+    finally { e.dispose() }
 
     worldConfig.postProcessing.enabled = true
     const post = new Experience(canvas)
@@ -130,14 +136,16 @@ document.querySelector('#run').addEventListener('click', async () => {
       assert(post.renderer.renderPipeline.needsUpdate === false, 'New output graph did not render')
       const targets = new Set()
       for (const node of post.renderer.pipelineNodes) {
-        if (node.renderTarget) targets.add(node.renderTarget)
+        if (node.renderTarget)
+          targets.add(node.renderTarget)
         if (node._renderTargetEdges) {
           targets.add(node._renderTargetEdges); targets.add(node._renderTargetWeights); targets.add(node._renderTargetBlend)
         }
       }
       const blur = post.renderer.tiltShiftEffect.blurNode
       targets.add(blur._horizontalRT); targets.add(blur._verticalRT)
-      if (blur.textureNode.isRTTNode) targets.add(blur.textureNode.renderTarget)
+      if (blur.textureNode.isRTTNode)
+        targets.add(blur.textureNode.renderTarget)
       let freed = 0
       targets.forEach(target => target.addEventListener('dispose', () => freed++))
       post.renderer.attachPipeline(post.scene, post.worldCamera.instance)
@@ -145,7 +153,8 @@ document.querySelector('#run').addEventListener('click', async () => {
       await frames(post)
       record({ name: 'postprocessing-toggle-and-reattach', ownedTargets: targets.size, disposedTargets: freed })
       await disposeAndRecord(post, 'postprocessing-experience-disposal')
-    } finally { post.dispose() }
+    }
+    finally { post.dispose() }
 
     worldConfig.postProcessing.enabled = false
     noise.path = 'texture/validation-missing-optional.png'
@@ -158,7 +167,8 @@ document.querySelector('#run').addEventListener('click', async () => {
       assert(optional.world.terrainChunkManager.activeSlots.size === 9, 'Optional failure blocked world')
       record({ name: 'optional-failure', worldLoaded: true, noiseFallback: !optional.world.materials.waterMaterial.userData.noiseTexture })
       await disposeAndRecord(optional, 'optional-experience-disposal')
-    } finally { optional.dispose(); noise.path = noisePath }
+    }
+    finally { optional.dispose(); noise.path = noisePath }
 
     brick.path = 'model/terrain/validation-missing-required.glb'
     const originalDispose = Experience.prototype.dispose
@@ -170,9 +180,11 @@ document.querySelector('#run').addEventListener('click', async () => {
     assert(!failedExperience.world.brickGeometry && failedExperience.world.children.length === 0, 'Failed startup built a World')
     record({ name: 'required-failure-bootstrap', disposed: true, itemsRetained: Object.keys(failedExperience.resources.items).length })
     output.textContent += '\nALL CHECKS PASSED'
-  } catch (error) {
+  }
+  catch (error) {
     record({ name: 'failure', error: error.stack })
-  } finally {
+  }
+  finally {
     brick.path = brickPath
     noise.path = noisePath
     worldConfig.postProcessing.enabled = ppEnabled

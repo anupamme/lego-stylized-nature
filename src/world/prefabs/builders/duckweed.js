@@ -17,12 +17,12 @@ export function buildDuckweed() {
         height: PAD_HEIGHT,
         segments: 4,
         thetaStart: i * quarter + GAP / 2,
-        thetaLength: quarter - GAP
-      }).translate(0, STEM_HEIGHT, 0)
+        thetaLength: quarter - GAP,
+      }).translate(0, STEM_HEIGHT, 0),
     )
   }
 
   return makePrefabScene([
-    { name: 'duckweed_root', color: LEGO_COLORS.duckweedGreen, parts }
+    { name: 'duckweed_root', color: LEGO_COLORS.duckweedGreen, parts },
   ])
 }

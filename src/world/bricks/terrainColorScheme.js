@@ -16,7 +16,7 @@ export const TERRAIN_COLOR_DEFAULTS = Object.freeze({
   layerScale: 12,
   layerWarp: 2,
   microVariation: 0.015,
-  preview: 'final'
+  preview: 'final',
 })
 
 const PARAMETER_LIMITS = {
@@ -31,11 +31,11 @@ const PARAMETER_LIMITS = {
   layerStrength: [0, 0.5],
   layerScale: [1, 128],
   layerWarp: [0, 16],
-  microVariation: [0, 0.1]
+  microVariation: [0, 0.1],
 }
 
 export function prepareColorPalette(palette) {
-  return palette.map((entry) => ({ at: entry.at, color: new THREE.Color(entry.color) }))
+  return palette.map(entry => ({ at: entry.at, color: new THREE.Color(entry.color) }))
     .sort((a, b) => a.at - b.at)
 }
 
@@ -57,7 +57,7 @@ export function createDefaultColorPalette(baseHex) {
   return [
     { at: 0, color: `#${dark}` },
     { at: 0.5, color: `#${base.getHexString()}` },
-    { at: 1, color: `#${light}` }
+    { at: 1, color: `#${light}` },
   ]
 }
 
@@ -97,8 +97,8 @@ export function exportTerrainColorScheme(settings) {
     version: 2,
     selection: 'nearest',
     name: settings.name.trim().slice(0, 80) || 'Terrain colors',
-    settings: Object.fromEntries(Object.keys(PARAMETER_LIMITS).map((key) => [key, settings[key]])),
-    palettes: structuredClone(settings.palettes)
+    settings: Object.fromEntries(Object.keys(PARAMETER_LIMITS).map(key => [key, settings[key]])),
+    palettes: structuredClone(settings.palettes),
   }
 }
 

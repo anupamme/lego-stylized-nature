@@ -1,10 +1,10 @@
 import * as THREE from 'three/webgpu'
+import { createLavaMaterial } from '../materials/tsl/lavaMaterial.js'
 import { createLegoMaterial } from '../materials/tsl/legoMaterial.js'
 import { createWaterMaterial } from '../materials/tsl/waterMaterial.js'
-import { createLavaMaterial } from '../materials/tsl/lavaMaterial.js'
-import { resolveTreeMaterial } from './prefabs/treeMaterial.js'
-import { resolvePrefabMaterial } from './prefabs/prefabMaterialTint.js'
 import { resolveInstanceColorMaterial } from './prefabs/prefabInstanceColor.js'
+import { resolvePrefabMaterial } from './prefabs/prefabMaterialTint.js'
+import { resolveTreeMaterial } from './prefabs/treeMaterial.js'
 
 // The World owns these materials; slots and warmup meshes only borrow them.
 export default class WorldMaterials {
@@ -23,7 +23,7 @@ export default class WorldMaterials {
       clearcoatRoughness: waterConfig.clearcoatRoughness,
       darkColor: lavaConfig.darkColor,
       midColor: lavaConfig.midColor,
-      lightColor: lavaConfig.lightColor
+      lightColor: lavaConfig.lightColor,
     }, waterNoiseTexture, this.waterMaterial.userData.uniforms)
     this.treeMaterials = new Map()
     this.tintMaterials = new Map()
@@ -54,7 +54,7 @@ export default class WorldMaterials {
       this.waterMaterial,
       this.lavaMaterial,
       ...this.treeMaterials.values(),
-      ...this.instanceColorMaterials.values()
+      ...this.instanceColorMaterials.values(),
     ])
     for (const sourceCache of this.tintMaterials.values()) {
       for (const material of sourceCache.values()) {

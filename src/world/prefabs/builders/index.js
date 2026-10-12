@@ -15,5 +15,5 @@ export const prefabBuilders = {
   mushroom: buildMushroom,
   phragmites: buildPhragmites,
   volcanoRock: buildVolcanoRock,
-  volcanoRockSmall: buildVolcanoRockSmall
+  volcanoRockSmall: buildVolcanoRockSmall,
 }

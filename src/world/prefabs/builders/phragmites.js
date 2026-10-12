@@ -7,13 +7,13 @@ import { box, cylinder, makePrefabScene } from './prefabParts.js'
 export function buildPhragmites() {
   const stems = [
     box({ width: 0.07907, height: 0.02922, depth: 0.07907 }),
-    cylinder({ radius: 0.0335, height: 0.004, segments: 10 }).translate(0, 0.0285, 0)
+    cylinder({ radius: 0.0335, height: 0.004, segments: 10 }).translate(0, 0.0285, 0),
   ]
   const heads = []
   for (const { x, z, bottom, top } of [
     { x: -0.0048, z: 0.0015, bottom: 0.09954, top: 0.17408 },
     { x: 0.0197, z: 0.0095, bottom: 0.14638, top: 0.22092 },
-    { x: 0.00695, z: -0.017, bottom: 0.20968, top: 0.28422 }
+    { x: 0.00695, z: -0.017, bottom: 0.20968, top: 0.28422 },
   ]) {
     stems.push(cylinder({ radius: 0.0075, height: top + 0.01108 - 0.03, segments: 8 })
       .translate(x, 0.03, z))
@@ -21,12 +21,12 @@ export function buildPhragmites() {
   }
   const leaves = [
     reedLeaf({ root: [-0.003, 0.028, -0.021], tip: [-0.016, 0.145, -0.062], width: 0.0105 }),
-    reedLeaf({ root: [0.022, 0.028, 0.013], tip: [0.067, 0.1775, 0.038], width: 0.0125 })
+    reedLeaf({ root: [0.022, 0.028, 0.013], tip: [0.067, 0.1775, 0.038], width: 0.0125 }),
   ]
   return makePrefabScene([
     { name: 'phragmites_stem', color: LEGO_COLORS.reedStem, parts: stems },
     { name: 'phragmites_leaf', color: LEGO_COLORS.reedLeaf, parts: leaves },
-    { name: 'phragmites_head', color: LEGO_COLORS.reedHead, parts: heads }
+    { name: 'phragmites_head', color: LEGO_COLORS.reedHead, parts: heads },
   ])
 }
 
@@ -37,7 +37,10 @@ function reedHead(bottom, top) {
   const positions = []
   const indices = []
   for (const [y, radius] of [
-    [bottom, 0.010], [bottom + 0.0074, 0.0145], [top - 0.0012, 0.0145], [top, 0.0135]
+    [bottom, 0.010],
+    [bottom + 0.0074, 0.0145],
+    [top - 0.0012, 0.0145],
+    [top, 0.0135],
   ]) {
     for (let side = 0; side < sides; side++) {
       const angle = side / sides * Math.PI * 2

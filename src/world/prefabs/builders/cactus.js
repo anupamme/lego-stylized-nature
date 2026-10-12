@@ -49,8 +49,14 @@ function beveledBlock({ width, depth, height, top = true }) {
     const hx = width / 2 - inset
     const hz = depth / 2 - inset
     for (const [x, z] of [
-      [-hx + corner, hz], [hx - corner, hz], [hx, hz - corner], [hx, -hz + corner],
-      [hx - corner, -hz], [-hx + corner, -hz], [-hx, -hz + corner], [-hx, hz - corner]
+      [-hx + corner, hz],
+      [hx - corner, hz],
+      [hx, hz - corner],
+      [hx, -hz + corner],
+      [hx - corner, -hz],
+      [-hx + corner, -hz],
+      [-hx, -hz + corner],
+      [-hx, hz - corner],
     ]) positions.push(x, y, z)
   }
   for (let ring = 0; ring < 3; ring++) {
@@ -74,10 +80,11 @@ function beveledBlock({ width, depth, height, top = true }) {
 // while a short horizontal band joins each arm to the central stem.
 function armSupport(side) {
   const profile = [
-    [DEPTH / 2 - 0.004, 0.121], [ARM_REACH + DEPTH / 2 - 0.0353, 0.121],
+    [DEPTH / 2 - 0.004, 0.121],
+    [ARM_REACH + DEPTH / 2 - 0.0353, 0.121],
     [ARM_REACH + DEPTH / 2, ARM_BOTTOM],
     [ARM_REACH + DEPTH / 2, ARM_BOTTOM + 0.002],
-    [DEPTH / 2 - 0.004, ARM_BOTTOM + 0.002]
+    [DEPTH / 2 - 0.004, ARM_BOTTOM + 0.002],
   ]
   const positions = []
   const indices = []
@@ -86,7 +93,8 @@ function armSupport(side) {
   const right = profile.map(([z, y]) => new THREE.Vector3(CENTER_X + WIDTH / 2, y, CENTER_Z + side * z))
   const triangle = (a, b, c) => {
     const normal = b.clone().sub(a).cross(c.clone().sub(a))
-    if (normal.dot(a.clone().add(b).add(c).multiplyScalar(1 / 3).sub(center)) < 0) [b, c] = [c, b]
+    if (normal.dot(a.clone().add(b).add(c).multiplyScalar(1 / 3).sub(center)) < 0)
+      [b, c] = [c, b]
     const offset = positions.length / 3
     for (const point of [a, b, c]) positions.push(point.x, point.y, point.z)
     indices.push(offset, offset + 1, offset + 2)

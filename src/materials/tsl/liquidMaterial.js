@@ -1,4 +1,3 @@
-import * as THREE from 'three/webgpu'
 import {
   color,
   cos,
@@ -12,8 +11,9 @@ import {
   texture,
   time,
   uniform,
-  vec2
+  vec2,
 } from 'three/tsl'
+import * as THREE from 'three/webgpu'
 
 function configureLiquidNoiseTexture(noiseTexture) {
   noiseTexture.wrapS = THREE.RepeatWrapping
@@ -32,7 +32,7 @@ export function createLiquidMaterial(config = {}, noiseTexture = null, sharedUni
     uTextureScale: uniform(config.textureScale ?? 0.45),
     uFlowSpeed: uniform(config.flowSpeed ?? 0.42),
     uFlowStrength: uniform(config.flowStrength ?? 0.52),
-    uFlowVariance: uniform(config.flowVariance ?? 0.55)
+    uFlowVariance: uniform(config.flowVariance ?? 0.55),
   }
   const { uTextureScale, uFlowSpeed, uFlowStrength, uFlowVariance } = uniforms
 
@@ -47,13 +47,13 @@ export function createLiquidMaterial(config = {}, noiseTexture = null, sharedUni
   const poolFlow = mix(baseFlow, randomFlow, uFlowVariance)
   const uvPerturb = vec2(
     sin(positionWorld.z.mul(2.4).add(flowTime.mul(1.6))),
-    cos(positionWorld.x.mul(2.4).sub(flowTime.mul(1.35)))
+    cos(positionWorld.x.mul(2.4).sub(flowTime.mul(1.35))),
   ).mul(0.012)
 
   let noiseValue = sin(
     positionWorld.x.mul(3.1)
       .add(positionWorld.z.mul(2.3))
-      .add(flowTime.mul(2.2))
+      .add(flowTime.mul(2.2)),
   ).mul(0.5).add(0.5)
 
   if (noiseTexture) {
@@ -75,13 +75,13 @@ export function createLiquidMaterial(config = {}, noiseTexture = null, sharedUni
   const midToLight = mix(
     midColor,
     lightColor,
-    noiseValue.sub(0.5).mul(2)
+    noiseValue.sub(0.5).mul(2),
   )
 
   material.colorNode = mix(
     darkToMid,
     midToLight,
-    step(0.5, noiseValue)
+    step(0.5, noiseValue),
   )
   material.userData.uniforms = uniforms
 

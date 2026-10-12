@@ -3,14 +3,14 @@ export const TILT_SHIFT_DEFAULTS = Object.freeze({
   focusCenter: 0.61,
   focusWidth: 0.33,
   falloff: 0.50,
-  blurStrength: 0.45
+  blurStrength: 0.45,
 })
 
 export const TILT_SHIFT_RANGES = Object.freeze({
   focusCenter: Object.freeze({ min: 0, max: 1, step: 0.01 }),
   focusWidth: Object.freeze({ min: 0.02, max: 1, step: 0.01 }),
   falloff: Object.freeze({ min: 0.01, max: 0.5, step: 0.01 }),
-  blurStrength: Object.freeze({ min: 0, max: 5, step: 0.05 })
+  blurStrength: Object.freeze({ min: 0, max: 5, step: 0.05 }),
 })
 
 function clamp01(value) {
@@ -19,7 +19,7 @@ function clamp01(value) {
 
 export function evaluateTiltShiftMask(
   screenY,
-  config = TILT_SHIFT_DEFAULTS
+  config = TILT_SHIFT_DEFAULTS,
 ) {
   const focusCenter = config.focusCenter ?? TILT_SHIFT_DEFAULTS.focusCenter
   const focusWidth = config.focusWidth ?? TILT_SHIFT_DEFAULTS.focusWidth

@@ -1,23 +1,23 @@
-import * as THREE from 'three/webgpu'
+import { smaa } from 'three/addons/tsl/display/SMAANode.js'
 import {
+  float,
+  Fn,
   pass,
   renderOutput,
-  Fn,
-  float,
-  vec4,
   screenUV,
-  smoothstep
+  smoothstep,
+  vec4,
 } from 'three/tsl'
-import { smaa } from 'three/addons/tsl/display/SMAANode.js'
-import { createTiltShiftEffect } from './postprocessing/createTiltShiftEffect.js'
+import * as THREE from 'three/webgpu'
 import { installObjectResourceCleanup } from './installObjectResourceCleanup.js'
 import { installPrefabRenderPreparation } from './installPrefabRenderPreparation.js'
-import { TILT_SHIFT_DEFAULTS } from './postprocessing/tiltShiftConfig.js'
 import { createSpeedLinesEffect } from './postprocessing/createSpeedLinesEffect.js'
+import { createTiltShiftEffect } from './postprocessing/createTiltShiftEffect.js'
 import {
+  normalizeSpeedLinesConfig,
   SPEED_LINES_DEFAULTS,
-  normalizeSpeedLinesConfig
 } from './postprocessing/speedLinesConfig.js'
+import { TILT_SHIFT_DEFAULTS } from './postprocessing/tiltShiftConfig.js'
 
 // dist is scaled so screen corners sit near 1.0 (~sqrt(2)/2 * 1.42)
 const VIGNETTE_INNER = 0.22
@@ -33,12 +33,12 @@ const applyVignette = Fn(() => {
 
 export default class Renderer {
   /**
-    * @param {{
-    *   canvas: HTMLCanvasElement,
-    *   trackTimestamp?: boolean,
-    *   postProcessing?: {
-    *     enabled?: boolean,
-    *     tiltShift?: {
+   * @param {{
+   *   canvas: HTMLCanvasElement,
+   *   trackTimestamp?: boolean,
+   *   postProcessing?: {
+   *     enabled?: boolean,
+   *     tiltShift?: {
    *       enabled?: boolean,
    *       focusCenter?: number,
    *       focusWidth?: number,
@@ -63,21 +63,21 @@ export default class Renderer {
     this.instance = new THREE.WebGPURenderer({
       canvas,
       forceWebGL: false,
-      trackTimestamp
+      trackTimestamp,
     })
     this.instance.outputColorSpace = THREE.SRGBColorSpace
     this.instance.toneMapping = THREE.ACESFilmicToneMapping
-    this.instance.toneMappingExposure = 0.9
+    this.instance.toneMappingExposure = 1.2
     this.instance.shadowMap.enabled = true
     this.instance.shadowMap.type = THREE.BasicShadowMap
     // Count all scene, shadow and postprocessing passes in one game frame.
     this.instance.info.autoReset = false
 
     this.postProcessingEnabled = postProcessing.enabled !== false
-    this.tiltShiftConfig =
-      postProcessing.tiltShift ?? { ...TILT_SHIFT_DEFAULTS }
+    this.tiltShiftConfig
+      = postProcessing.tiltShift ?? { ...TILT_SHIFT_DEFAULTS }
     this.speedLinesConfig = normalizeSpeedLinesConfig(
-      postProcessing.speedLines ?? SPEED_LINES_DEFAULTS
+      postProcessing.speedLines ?? SPEED_LINES_DEFAULTS,
     )
 
     /** @type {THREE.RenderPipeline | null} */
@@ -107,7 +107,7 @@ export default class Renderer {
       },
       syncSpeedLines: (config) => {
         this.syncSpeedLines(config)
-      }
+      },
     })
   }
 
@@ -129,21 +129,21 @@ export default class Renderer {
     const sceneColor = scenePass.getTextureNode('output')
     this.speedLinesEffect = createSpeedLinesEffect(
       sceneColor,
-      this.speedLinesConfig
+      this.speedLinesConfig,
     )
     this.tiltShiftEffect = createTiltShiftEffect(
       this.speedLinesEffect.outputNode,
-      this.tiltShiftConfig
+      this.tiltShiftConfig,
     )
     this.pipelineNodes.push(this.tiltShiftEffect)
 
     this.outputNodes = {
       tiltShiftEnabled: this.createFinalOutput(
-        this.tiltShiftEffect.enabledOutput
+        this.tiltShiftEffect.enabledOutput,
       ),
       tiltShiftDisabled: this.createFinalOutput(
-        this.tiltShiftEffect.disabledOutput
-      )
+        this.tiltShiftEffect.disabledOutput,
+      ),
     }
 
     this.renderPipeline = new THREE.RenderPipeline(this.instance)
@@ -197,7 +197,7 @@ export default class Renderer {
     if (config.color) {
       this.speedLinesConfig.color = {
         ...this.speedLinesConfig.color,
-        ...config.color
+        ...config.color,
       }
     }
     this.speedLinesEffect?.sync(this.speedLinesConfig)
@@ -231,10 +231,12 @@ export default class Renderer {
   async prepareVisiblePrefabs() {
     // Rendering discovers the exact main and shadow RenderObjects. Preparing one
     // pass may expose another, so drain until a complete render queues no work.
-    if (!this.prefabPreparation) return
+    if (!this.prefabPreparation)
+      return
     do {
       await this.prefabPreparation.whenIdle()
-      if (this.disposed) return
+      if (this.disposed)
+        return
       this.render()
     } while (this.prefabPreparation.metrics.pending > 0)
   }
@@ -251,7 +253,8 @@ export default class Renderer {
     this.instance.info?.reset()
     if (this.postProcessingEnabled) {
       this.renderPipeline.render()
-    } else {
+    }
+    else {
       this.instance.render(this.scene, this.camera)
     }
   }

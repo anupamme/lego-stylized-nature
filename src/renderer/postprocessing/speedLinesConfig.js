@@ -7,7 +7,7 @@ export const SPEED_LINES_DEFAULTS = Object.freeze({
   minRadius: 0.4,
   maxRadius: 1.3,
   randomness: 0.5,
-  opacity: 0
+  opacity: 0,
 })
 
 export const SPEED_LINES_RANGES = Object.freeze({
@@ -17,7 +17,7 @@ export const SPEED_LINES_RANGES = Object.freeze({
   thickness: Object.freeze({ min: 0.02, max: 1, step: 0.01 }),
   minRadius: Object.freeze({ min: 0, max: 1.5, step: 0.01 }),
   maxRadius: Object.freeze({ min: 0.2, max: 2, step: 0.01 }),
-  randomness: Object.freeze({ min: 0, max: 1, step: 0.01 })
+  randomness: Object.freeze({ min: 0, max: 1, step: 0.01 }),
 })
 
 function clamp01(value) {
@@ -28,7 +28,7 @@ export function normalizeSpeedLinesColor(color = {}) {
   return {
     r: Number.isFinite(color.r) ? color.r : SPEED_LINES_DEFAULTS.color.r,
     g: Number.isFinite(color.g) ? color.g : SPEED_LINES_DEFAULTS.color.g,
-    b: Number.isFinite(color.b) ? color.b : SPEED_LINES_DEFAULTS.color.b
+    b: Number.isFinite(color.b) ? color.b : SPEED_LINES_DEFAULTS.color.b,
   }
 }
 
@@ -37,7 +37,7 @@ export function normalizeSpeedLinesConfig(config = {}) {
     enabled: config.enabled !== false,
     color: normalizeSpeedLinesColor({
       ...SPEED_LINES_DEFAULTS.color,
-      ...(config.color ?? {})
+      ...(config.color ?? {}),
     }),
     density: Number.isFinite(config.density)
       ? config.density
@@ -59,6 +59,6 @@ export function normalizeSpeedLinesConfig(config = {}) {
       : SPEED_LINES_DEFAULTS.randomness,
     opacity: Number.isFinite(config.opacity)
       ? clamp01(config.opacity)
-      : SPEED_LINES_DEFAULTS.opacity
+      : SPEED_LINES_DEFAULTS.opacity,
   }
 }

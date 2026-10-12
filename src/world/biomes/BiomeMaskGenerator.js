@@ -37,7 +37,7 @@ export default class BiomeMaskGenerator {
     return {
       table: biomes.table.map(({ id, weight }) => ({ value: id, weight })),
       // Reuse sites within a generation without retaining an unbounded world cache.
-      sites: new Map()
+      sites: new Map(),
     }
   }
 
@@ -52,7 +52,7 @@ export default class BiomeMaskGenerator {
         z: (gz + 0.5 + (random01(gx, gz, seed + 2) - 0.5) * jitter) * cellSize,
         biomeId: gx === 0 && gz === 0 && originBiome
           ? originBiome
-          : pickWeighted(context.table, random01(gx, gz, seed + 3))
+          : pickWeighted(context.table, random01(gx, gz, seed + 3)),
       }
       context.sites.set(key, site)
     }
@@ -103,7 +103,8 @@ export default class BiomeMaskGenerator {
         ? Math.min(1, Math.max(0, (distance - nearestDistance) / blendWidth))
         : distance === nearestDistance ? 0 : 1
       const weight = 1 - t * t * (3 - 2 * t)
-      if (weight <= 0) continue
+      if (weight <= 0)
+        continue
 
       weights[biomeId] = (weights[biomeId] ?? 0) + weight
       total += weight

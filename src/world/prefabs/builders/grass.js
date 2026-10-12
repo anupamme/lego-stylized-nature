@@ -11,7 +11,7 @@ export function buildGrassShort() {
   return buildGrass([
     { angle: 0.12, rise: 0.114, reach: 0.047, width: 0.017 },
     { angle: 2.25, rise: 0.096, reach: 0.051, width: 0.018 },
-    { angle: 4.35, rise: 0.083, reach: 0.045, width: 0.018 }
+    { angle: 4.35, rise: 0.083, reach: 0.045, width: 0.018 },
   ], [0, 0.27, 0.58, 0.83, 0.96], 6, 1.5)
 }
 
@@ -21,7 +21,7 @@ export function buildGrassTall() {
     { angle: 1.4, rise: 0.182, reach: 0.058, width: 0.018 },
     { angle: 2.7, rise: 0.169, reach: 0.068, width: 0.019 },
     { angle: 3.95, rise: 0.198, reach: 0.044, width: 0.017 },
-    { angle: 5.18, rise: 0.154, reach: 0.065, width: 0.019 }
+    { angle: 5.18, rise: 0.154, reach: 0.065, width: 0.019 },
   ], [0, 0.2, 0.43, 0.67, 0.86, 0.965], 8, 1.5)
 }
 
@@ -29,7 +29,7 @@ function buildGrass(leaves, rings, collarSegments, foliageScale = 1) {
   const parts = [
     beveledPlate(),
     cylinder({ radius: 0.021, height: 0.019, segments: collarSegments })
-      .translate(0, PLATE_HEIGHT - 0.006, 0)
+      .translate(0, PLATE_HEIGHT - 0.006, 0),
   ]
   for (const leaf of leaves) {
     parts.push(curvedLeaf(leaf, rings))
@@ -43,7 +43,7 @@ function buildGrass(leaves, rings, collarSegments, foliageScale = 1) {
     }
   }
   return makePrefabScene([
-    { name: 'grass_root', color: LEGO_COLORS.green, parts }
+    { name: 'grass_root', color: LEGO_COLORS.green, parts },
   ])
 }
 
@@ -56,17 +56,21 @@ function beveledPlate() {
     { half: half - bevel, y: 0 },
     { half, y: bevel },
     { half, y: PLATE_HEIGHT - bevel },
-    { half: half - bevel, y: PLATE_HEIGHT }
+    { half: half - bevel, y: PLATE_HEIGHT },
   ]
   const positions = []
   const indices = []
   for (const { half: extent, y } of ringSpecs) {
     const inset = 0.004
     for (const [x, z] of [
-      [-extent + inset, extent], [extent - inset, extent],
-      [extent, extent - inset], [extent, -extent + inset],
-      [extent - inset, -extent], [-extent + inset, -extent],
-      [-extent, -extent + inset], [-extent, extent - inset]
+      [-extent + inset, extent],
+      [extent - inset, extent],
+      [extent, extent - inset],
+      [extent, -extent + inset],
+      [extent - inset, -extent],
+      [-extent + inset, -extent],
+      [-extent, -extent + inset],
+      [-extent, extent - inset],
     ]) {
       positions.push(x, y, z)
     }

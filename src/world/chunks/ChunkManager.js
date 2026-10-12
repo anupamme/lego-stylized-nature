@@ -1,15 +1,15 @@
+import HeightfieldAO from '../bricks/HeightfieldAO.js'
+import LavaBrickRenderer from '../bricks/LavaBrickRenderer.js'
 import TerrainBrickRenderer from '../bricks/TerrainBrickRenderer.js'
 import WaterBrickRenderer from '../bricks/WaterBrickRenderer.js'
-import LavaBrickRenderer from '../bricks/LavaBrickRenderer.js'
-import HeightfieldAO from '../bricks/HeightfieldAO.js'
 import PrefabPlacer from '../prefabs/PrefabPlacer.js'
 import {
-  getChunkWindowCoords,
   getChunkBounds,
+  getChunkWindowCoords,
   getRenderChunkCoord,
   getRenderChunkKey,
   getRenderChunkOrigin,
-  getWorldBlockFromPosition
+  getWorldBlockFromPosition,
 } from './chunkCoordinates.js'
 import ChunkRenderSlot from './ChunkRenderSlot.js'
 
@@ -24,7 +24,7 @@ export default class ChunkManager {
     parentGroup,
     biomeRegistry = null,
     prefabRegistry = null,
-    createSlot = null
+    createSlot = null,
   }) {
     this.config = config
     this.terrainGenerator = terrainGenerator
@@ -92,11 +92,11 @@ export default class ChunkManager {
 
     const prefabPlacer = this.prefabRegistry && this.biomeRegistry
       ? new PrefabPlacer({
-        config: this.config,
-        biomeRegistry: this.biomeRegistry,
-        prefabRegistry: this.prefabRegistry,
-        materials: this.materials
-      })
+          config: this.config,
+          biomeRegistry: this.biomeRegistry,
+          prefabRegistry: this.prefabRegistry,
+          materials: this.materials,
+        })
       : null
 
     const waterEnabled = this.config.water?.enableWater !== false
@@ -107,22 +107,22 @@ export default class ChunkManager {
       terrainRenderer: new TerrainBrickRenderer({
         config: this.config,
         brickGeometry: this.brickGeometry,
-        materials: this.materials
+        materials: this.materials,
       }),
       heightfieldAO: new HeightfieldAO({ config: this.config }),
       prefabPlacer,
       waterRenderer: waterEnabled
         ? new WaterBrickRenderer({
-          config: this.config,
-          brickGeometry: this.brickGeometry,
-          materials: this.materials
-        })
+            config: this.config,
+            brickGeometry: this.brickGeometry,
+            materials: this.materials,
+          })
         : null,
       lavaRenderer: new LavaBrickRenderer({
         config: this.config,
         brickGeometry: this.brickGeometry,
-        materials: this.materials
-      })
+        materials: this.materials,
+      }),
     })
   }
 
@@ -145,7 +145,7 @@ export default class ChunkManager {
 
     return {
       x: this.snapNearIntegerBlock(worldX, worldBlock.x),
-      z: this.snapNearIntegerBlock(worldZ, worldBlock.z)
+      z: this.snapNearIntegerBlock(worldZ, worldBlock.z),
     }
   }
 
@@ -190,16 +190,14 @@ export default class ChunkManager {
     const bounds = getChunkBounds(coord, this.chunkSize, this.cellSize)
     const spacingX = coord.x * this.debugSpacing
     const spacingZ = coord.z * this.debugSpacing
-    const dx = Math.max(bounds.minX + spacingX - position.x, 0,
-      position.x - bounds.maxX - spacingX)
-    const dz = Math.max(bounds.minZ + spacingZ - position.z, 0,
-      position.z - bounds.maxZ - spacingZ)
+    const dx = Math.max(bounds.minX + spacingX - position.x, 0, position.x - bounds.maxX - spacingX)
+    const dz = Math.max(bounds.minZ + spacingZ - position.z, 0, position.z - bounds.maxZ - spacingZ)
     const centerX = (bounds.minX + bounds.maxX) * 0.5 + spacingX - position.x
     const centerZ = (bounds.minZ + bounds.maxZ) * 0.5 + spacingZ - position.z
 
     return {
       distanceSquared: dx * dx + dz * dz,
-      ahead: centerX * this.movementDirection.x + centerZ * this.movementDirection.z
+      ahead: centerX * this.movementDirection.x + centerZ * this.movementDirection.z,
     }
   }
 
@@ -225,7 +223,7 @@ export default class ChunkManager {
     this.centerCoord = { ...nextCenterCoord }
 
     const requiredCoords = getChunkWindowCoords(nextCenterCoord, this.windowRadius)
-    const requiredKeys = new Set(requiredCoords.map((coord) => getRenderChunkKey(coord)))
+    const requiredKeys = new Set(requiredCoords.map(coord => getRenderChunkKey(coord)))
 
     for (const [key, slot] of this.activeSlots) {
       if (requiredKeys.has(key)) {
@@ -243,7 +241,7 @@ export default class ChunkManager {
       const key = getRenderChunkKey(coord)
       return requiredKeys.has(key) && !this.activeSlots.has(key)
     })
-    this.pendingKeys = new Set(this.pendingQueue.map((coord) => getRenderChunkKey(coord)))
+    this.pendingKeys = new Set(this.pendingQueue.map(coord => getRenderChunkKey(coord)))
 
     const centerKey = getRenderChunkKey(nextCenterCoord)
     let immediateBuilds = 0
@@ -274,7 +272,7 @@ export default class ChunkManager {
       return
     }
 
-    this.pendingQueue = this.pendingQueue.filter((pendingCoord) => getRenderChunkKey(pendingCoord) !== key)
+    this.pendingQueue = this.pendingQueue.filter(pendingCoord => getRenderChunkKey(pendingCoord) !== key)
     this.pendingKeys.delete(key)
   }
 
@@ -283,7 +281,7 @@ export default class ChunkManager {
       return
     }
 
-    this.pendingPrefabBuildQueue = this.pendingPrefabBuildQueue.filter((pendingKey) => pendingKey !== key)
+    this.pendingPrefabBuildQueue = this.pendingPrefabBuildQueue.filter(pendingKey => pendingKey !== key)
     this.pendingPrefabBuildKeys.delete(key)
   }
 
@@ -312,7 +310,7 @@ export default class ChunkManager {
     })
     this.pendingPrefabBuildQueue.sort((a, b) => this.compareBuildCoords(
       this.activeSlots.get(a).coord,
-      this.activeSlots.get(b).coord
+      this.activeSlots.get(b).coord,
     ))
 
     let built = 0
@@ -360,7 +358,7 @@ export default class ChunkManager {
     const terrainMap = this.terrainGenerator.generateChunk({
       origin,
       size: this.chunkSize,
-      halo: this.halo
+      halo: this.halo,
     })
     const generated = performance.now()
     const placements = this.layeredTerrainBuilder.buildPlacements(terrainMap)
@@ -371,7 +369,7 @@ export default class ChunkManager {
       terrainMap,
       placements,
       colorResolver: this.brickColorResolver,
-      debugSpacing: this.debugSpacing
+      debugSpacing: this.debugSpacing,
     })
     const finished = performance.now()
     Object.assign(this.buildTimings, {
@@ -381,7 +379,7 @@ export default class ChunkManager {
       ...slot.buildTimings,
       totalMs: finished - started,
       maxMs: Math.max(this.buildTimings.maxMs, finished - started),
-      builds: this.buildTimings.builds + 1
+      builds: this.buildTimings.builds + 1,
     })
   }
 
@@ -429,7 +427,8 @@ export default class ChunkManager {
 
       if (slot.prefabsBuiltForKey === key) {
         slot.setPrefabsVisible?.(true)
-      } else if (!this.pendingPrefabBuildKeys.has(key)) {
+      }
+      else if (!this.pendingPrefabBuildKeys.has(key)) {
         slot.setPrefabsVisible?.(false)
         this.pendingPrefabBuildQueue.push(key)
         this.pendingPrefabBuildKeys.add(key)
@@ -451,7 +450,7 @@ export default class ChunkManager {
   getDebugMaterials() {
     return {
       legoMaterial: this.materials?.legoMaterial ?? null,
-      waterMaterial: this.materials?.waterMaterial ?? null
+      waterMaterial: this.materials?.waterMaterial ?? null,
     }
   }
 

@@ -1,14 +1,14 @@
-import sources from '../assets/sources.js'
-
-import * as THREE from 'three/webgpu'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
-import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js'
-import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js'
 import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js'
+
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js'
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js'
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
+import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js'
+import * as THREE from 'three/webgpu'
+import sources from '../assets/sources.js'
 
 export default class Resources {
   constructor(sourceList = sources) {
@@ -22,7 +22,7 @@ export default class Resources {
     this._disposedObjects = new WeakSet()
     this._videos = new Set()
 
-    this.ready = new Promise(resolve => {
+    this.ready = new Promise((resolve) => {
       this._resolveReady = resolve
     })
 
@@ -47,7 +47,7 @@ export default class Resources {
       svg: new SVGLoader(),
       exrTexture: new EXRLoader(),
       video: null, // special handling
-      ktx2Texture: new KTX2Loader()
+      ktx2Texture: new KTX2Loader(),
     }
 
     // TODO: user may need to set decoder paths for GLTF/Draco/KTX2
@@ -111,7 +111,8 @@ export default class Resources {
 
     try {
       loader.load(path, onLoad, undefined, onError)
-    } catch (err) {
+    }
+    catch (err) {
       onError(err)
     }
   }
@@ -119,7 +120,8 @@ export default class Resources {
   itemLoaded(name, file) {
     if (this.disposed) {
       this.disposeItem(file)
-    } else {
+    }
+    else {
       this.items[name] = file
     }
     this.loaded++
@@ -134,10 +136,10 @@ export default class Resources {
     if (this.disposed) {
       throw new Error('[Resources] Resources have been disposed')
     }
-    const failed = this.sources.filter((source) => source.required && !this.items[source.name])
+    const failed = this.sources.filter(source => source.required && !this.items[source.name])
     if (failed.length > 0) {
-      throw new Error(`[Resources] Required resources failed to load: ${failed.map((source) => source.name).join(', ')}`, {
-        cause: this.errors[failed[0].name]
+      throw new Error(`[Resources] Required resources failed to load: ${failed.map(source => source.name).join(', ')}`, {
+        cause: this.errors[failed[0].name],
       })
     }
   }

@@ -8,7 +8,7 @@ export default class WaterBrickRenderer {
     config,
     brickGeometry,
     materials,
-    pageCapacity = WATER_PAGE_CAPACITY
+    pageCapacity = WATER_PAGE_CAPACITY,
   }) {
     this.config = config
     this.brickGeometry = brickGeometry
@@ -43,7 +43,7 @@ export default class WaterBrickRenderer {
     for (let localZ = 0; localZ < bounds.visibleDepth; localZ++) {
       for (let localX = 0; localX < bounds.visibleWidth; localX++) {
         if (this.config.water?.enableWater === false
-            || !terrainMap.getSurfaceCell(bounds.halo + localX, bounds.halo + localZ)?.isWater) {
+          || !terrainMap.getSurfaceCell(bounds.halo + localX, bounds.halo + localZ)?.isWater) {
           continue
         }
         const pageIndex = Math.floor(instanceIndex / this.pageCapacity)
@@ -53,7 +53,7 @@ export default class WaterBrickRenderer {
         this._matrix.makeTranslation(
           (localX + 0.5) * cellSize,
           waterY,
-          (localZ + 0.5) * cellSize
+          (localZ + 0.5) * cellSize,
         )
 
         page.mesh.setMatrixAt(localIndex, this._matrix)
@@ -86,7 +86,7 @@ export default class WaterBrickRenderer {
     const mesh = new THREE.InstancedMesh(
       this.brickGeometry,
       this.material,
-      this.pageCapacity
+      this.pageCapacity,
     )
 
     mesh.name = pageIndex === 0 ? 'WaterBrickInstances' : `WaterBrickInstances_${pageIndex}`
@@ -98,7 +98,7 @@ export default class WaterBrickRenderer {
 
     page = {
       mesh,
-      count: 0
+      count: 0,
     }
 
     this.pages[pageIndex] = page

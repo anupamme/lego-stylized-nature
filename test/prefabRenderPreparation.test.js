@@ -1,8 +1,8 @@
-import test from 'node:test'
 import assert from 'node:assert/strict'
 import * as THREE from 'three/webgpu'
-import { installPrefabRenderPreparation, withPipelineErrorScopes } from '../src/renderer/installPrefabRenderPreparation.js'
+import test from 'vitest'
 import { installObjectResourceCleanup } from '../src/renderer/installObjectResourceCleanup.js'
+import { installPrefabRenderPreparation, withPipelineErrorScopes } from '../src/renderer/installPrefabRenderPreparation.js'
 
 function deferred() {
   let resolve
@@ -41,7 +41,8 @@ function fixture({ pipelineWait = null, failBuild = false, synchronousFallback =
     _nodes: {
       nodeBuilderCache: new Map(),
       get(renderObject) {
-        if (!nodeData.has(renderObject)) nodeData.set(renderObject, {})
+        if (!nodeData.has(renderObject))
+          nodeData.set(renderObject, {})
         return nodeData.get(renderObject)
       },
       getForRenderCacheKey: renderObject => renderObject.initialCacheKey,
@@ -60,28 +61,34 @@ function fixture({ pipelineWait = null, failBuild = false, synchronousFallback =
         return {
           context: { position: { isNode: true } },
           flowNodes: { vertex: [{ build: observe }], fragment: [{ build: observe }], compute: [] },
-          prebuild() { observe(); if (failBuild) throw new Error('broken shader') },
+          prebuild() {
+            observe(); if (failBuild)
+              throw new Error('broken shader')
+          },
           setBuildStage() {},
           setShaderStage() {},
           flowNodeFromShaderStage: observe,
           flowNode: observe,
           buildCode: observe,
           buildUpdateNodes: observe,
-          result
+          result,
         }
       },
       _createNodeBuilderState(builder) { return { usedTimes: 0, createBindings: () => [], ...builder.result } },
       updateForRender(renderObject) { assert.ok(this.get(renderObject).nodeBuilderState) },
       delete(renderObject) {
         const state = nodeData.get(renderObject)?.nodeBuilderState
-        if (state && --state.usedTimes === 0) this.nodeBuilderCache.delete(renderObject.initialCacheKey)
+        if (state && --state.usedTimes === 0)
+          this.nodeBuilderCache.delete(renderObject.initialCacheKey)
         nodeData.delete(renderObject)
-      }
+      },
     },
     _objects: {
       createRenderObject(object, material, context) {
         const renderObject = {
-          object, material, context,
+          object,
+          material,
+          context,
           initialCacheKey: `${object.uuid}:${material.uuid}:${context.id}`,
           getNodeBuilderState() {
             const state = nodeData.get(this)?.nodeBuilderState
@@ -99,15 +106,16 @@ function fixture({ pipelineWait = null, failBuild = false, synchronousFallback =
             pipelines.delete(renderObject)
             renderObjects.delete(renderObject.initialCacheKey)
           },
-          dispose() { this.onDispose() }
+          dispose() { this.onDispose() },
         }
         return renderObject
       },
       get(object, material, scene, camera, lightsNode, context) {
         const key = `${object.uuid}:${material.uuid}:${context.id}`
-        if (!renderObjects.has(key)) renderObjects.set(key, this.createRenderObject(object, material, context))
+        if (!renderObjects.has(key))
+          renderObjects.set(key, this.createRenderObject(object, material, context))
         return renderObjects.get(key)
-      }
+      },
     },
     _geometries: { updateForRender(renderObject) { renderObject.getNodeBuilderState() } },
     _bindings: { updateForRender(renderObject) { bindingObjects.add(renderObject) } },
@@ -115,11 +123,12 @@ function fixture({ pipelineWait = null, failBuild = false, synchronousFallback =
       getForRender(renderObject, promises) {
         pipelines.set(renderObject, false)
         pipelineStarted.resolve()
-        if (pipelineWait) promises.push(pipelineWait.promise.then(() => pipelines.set(renderObject, true)))
+        if (pipelineWait)
+          promises.push(pipelineWait.promise.then(() => pipelines.set(renderObject, true)))
         else pipelines.set(renderObject, true)
         return renderObject
       },
-      isReady: renderObject => pipelines.get(renderObject) === true
+      isReady: renderObject => pipelines.get(renderObject) === true,
     },
     _renderObjectDirect(object, material, scene, camera, lightsNode, group, clippingContext, passId) {
       const renderObject = this._objects.get(object, material, scene, camera, lightsNode, this._currentRenderContext)
@@ -128,7 +137,7 @@ function fixture({ pipelineWait = null, failBuild = false, synchronousFallback =
       }
       renderObject.getNodeBuilderState()
       draws.push(renderObject)
-    }
+    },
   }
   installObjectResourceCleanup(renderer)
   const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(), new THREE.MeshStandardNodeMaterial(), 32)
@@ -230,7 +239,8 @@ test('build errors restore renderer context and live count and release partial r
     assert.equal(f.renderer._currentRenderContext, f.mainContext)
     assert.equal(f.renderer._nodes.nodeBuilderCache.size, 0)
     assert.equal(f.renderObjects.size, 0)
-  } finally {
+  }
+  finally {
     console.error = originalError
     f.adapter.dispose()
   }
@@ -276,7 +286,8 @@ test('unsupported renderer internals preserve synchronous drawing', () => {
     assert.equal(f.draws.length, 1)
     adapter.dispose()
     assert.equal(f.renderer._renderObjectDirect, originalDraw)
-  } finally {
+  }
+  finally {
     console.warn = originalWarn
   }
 })
@@ -291,7 +302,8 @@ test('failed preparation draws through the synchronous fallback on the next subm
     assert.equal(f.adapter.metrics.failed, 1)
     f.submit()
     assert.equal(f.draws.length, 1)
-  } finally {
+  }
+  finally {
     console.error = originalError
     f.adapter.dispose()
   }
@@ -339,7 +351,8 @@ test('empty or hidden queued prefab objects are discarded and can prepare when t
     const group = new THREE.Group()
     group.add(f.mesh)
     f.submit()
-    if (mode === 'empty') f.mesh.count = 0
+    if (mode === 'empty')
+      f.mesh.count = 0
     else group.visible = false
     await f.adapter.whenIdle()
     assert.equal(f.builds.length, 0)
@@ -372,7 +385,8 @@ test('background GPU rejection settles idle and does not stall the following CPU
     assert.equal(f.adapter.metrics.gpuPending, 0)
     assert.equal(f.renderer._nodes.nodeBuilderCache.size, 0)
     assert.equal(f.bindingObjects.size, 0)
-  } finally {
+  }
+  finally {
     console.error = errorLogged
     f.adapter.dispose()
   }
@@ -403,7 +417,8 @@ test('shared pipeline cache hits await the existing GPU job and share its failur
   const f = fixture({ adapterOptions: { budgetMs: 100, maxConcurrentPipelines: 2 } })
   let requested = 0
   f.renderer._pipelines.getForRender = (renderObject, promises) => {
-    if (requested++ === 0) promises.push(wait.promise)
+    if (requested++ === 0)
+      promises.push(wait.promise)
     else secondStarted.resolve()
     return sharedPipeline
   }
@@ -424,7 +439,8 @@ test('shared pipeline cache hits await the existing GPU job and share its failur
     assert.equal(f.adapter.metrics.pending, 0)
     assert.equal(f.adapter.metrics.gpuPending, 0)
     assert.equal(f.renderer._nodes.nodeBuilderCache.size, 0)
-  } finally {
+  }
+  finally {
     console.error = originalError
     f.adapter.dispose()
   }
@@ -438,12 +454,13 @@ test('parallel r185 pipeline compiles retain their own validation scopes when co
     popErrorScope() { assert.equal(this, device); return Promise.resolve(scopes.pop().error) },
     createRenderPipelineAsync(descriptor) {
       assert.equal(this, device)
-      if (descriptor.invalid) scopes.at(-1).error = { message: descriptor.name }
+      if (descriptor.invalid)
+        scopes.at(-1).error = { message: descriptor.name }
       const job = deferred()
       jobs.set(descriptor.name, job)
       return job.promise
     },
-    createShaderModule() { assert.equal(this, device); return 'module' }
+    createShaderModule() { assert.equal(this, device); return 'module' },
   }
   const backend = { isWebGPUBackend: true, device }
   const compile = descriptor => withPipelineErrorScopes(backend, () => {
@@ -470,7 +487,7 @@ test('pipeline scope adapter restores the device and closes a synchronously fail
   const device = {
     pushErrorScope() { scopeDepth++ },
     popErrorScope() { scopeDepth--; return Promise.resolve(null) },
-    createRenderPipelineAsync() { throw new Error('lost device') }
+    createRenderPipelineAsync() { throw new Error('lost device') },
   }
   const backend = { isWebGPUBackend: true, device }
   assert.throws(() => withPipelineErrorScopes(backend, () => {

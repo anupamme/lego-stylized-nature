@@ -2,7 +2,7 @@ import * as THREE from 'three/webgpu'
 import { getPrefabCapacity } from './prefabCapacity.js'
 import {
   matchesInstanceColorMesh,
-  normalizeInstanceColors
+  normalizeInstanceColors,
 } from './prefabInstanceColor.js'
 
 const WARMUP_GROUP_NAME = 'PrefabPipelineWarmup'
@@ -46,7 +46,7 @@ export async function warmupPrefabPipelines({
   materials,
   config,
   renderFrame = null,
-  retainPipelines = false
+  retainPipelines = false,
 }) {
   if (typeof renderer?.compileAsync !== 'function' || !scene || !camera || !prefabRegistry) {
     return { compiled: false, meshCount: 0 }
@@ -67,9 +67,11 @@ export async function warmupPrefabPipelines({
       await renderFrame()
     }
     compiled = true
-  } finally {
+  }
+  finally {
     scene.remove(group)
-    if (!compiled || !retainPipelines) disposeWarmupGroup(group)
+    if (!compiled || !retainPipelines)
+      disposeWarmupGroup(group)
   }
 
   // WebGPU releases unused pipeline cache entries with their RenderObjects.
@@ -109,7 +111,7 @@ function addInstanceColorWarmupMesh(group, child, prefabEntry, materials, capaci
     materials.resolveInstanceColorMaterial(child.material),
     'instanceColor',
     capacity,
-    { color: instanceColors.palette[0] }
+    { color: instanceColors.palette[0] },
   )
 }
 
@@ -122,7 +124,7 @@ function addWarmupMesh(group, child, material, materialMode, capacity, { color =
   mesh.receiveShadow = true
   mesh.setMatrixAt(0, new THREE.Matrix4())
   if (color || useInstanceColor) {
-    mesh.setColorAt(0, color ?? new THREE.Color(0xffffff))
+    mesh.setColorAt(0, color ?? new THREE.Color(0xFFFFFF))
     mesh.instanceColor.needsUpdate = true
   }
   mesh.instanceMatrix.needsUpdate = true

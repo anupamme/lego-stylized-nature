@@ -12,7 +12,7 @@ export function resolvePrefabMaterial(sourceMaterial, tint, tintMaterialCache = 
   }
 
   if (Array.isArray(sourceMaterial)) {
-    return sourceMaterial.map((material) => resolveSinglePrefabMaterial(material, normalized, tintMaterialCache))
+    return sourceMaterial.map(material => resolveSinglePrefabMaterial(material, normalized, tintMaterialCache))
   }
 
   return resolveSinglePrefabMaterial(sourceMaterial, normalized, tintMaterialCache)
@@ -45,13 +45,13 @@ function resolveSinglePrefabMaterial(sourceMaterial, normalizedTint, tintMateria
   }
 
   const clone = sourceMaterial.clone()
-  const sourceColor = sourceMaterial.color?.clone?.() ?? new THREE.Color(0xffffff)
+  const sourceColor = sourceMaterial.color?.clone?.() ?? new THREE.Color(0xFFFFFF)
   const targetColor = normalizedTint.color
 
   clone.color = sourceColor.clone().lerp(targetColor, normalizedTint.strength)
   clone.userData = {
     ...clone.userData,
-    [TINT_CLONE_FLAG]: true
+    [TINT_CLONE_FLAG]: true,
   }
   clone.needsUpdate = true
 
@@ -83,7 +83,7 @@ function normalizeTint(tint) {
 
   return {
     color,
-    strength: THREE.MathUtils.clamp(strength, 0, 1)
+    strength: THREE.MathUtils.clamp(strength, 0, 1),
   }
 }
 
@@ -92,19 +92,19 @@ function isUsableTintColorString(color) {
     return false
   }
 
-  if (/^#[A-Fa-f\d]{3}$/.test(color) || /^#[A-Fa-f\d]{6}$/.test(color)) {
+  if (/^#[A-F\d]{3}$/i.test(color) || /^#[A-F\d]{6}$/i.test(color)) {
     return true
   }
 
-  if (/^(rgb|rgba)\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*(\d*\.?\d+)\s*)?\)$/.test(color)) {
+  if (/^(rgb|rgba)\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*(\d+(?:\.\d+)?|\.\d+)\s*)?\)$/.test(color)) {
     return true
   }
 
-  if (/^(rgb|rgba)\(\s*(\d+)%\s*,\s*(\d+)%\s*,\s*(\d+)%\s*(?:,\s*(\d*\.?\d+)\s*)?\)$/.test(color)) {
+  if (/^(rgb|rgba)\(\s*(\d+)%\s*,\s*(\d+)%\s*,\s*(\d+)%\s*(?:,\s*(\d+(?:\.\d+)?|\.\d+)\s*)?\)$/.test(color)) {
     return true
   }
 
-  if (/^(hsl|hsla)\(\s*(\d*\.?\d+)\s*,\s*(\d*\.?\d+)%\s*,\s*(\d*\.?\d+)%\s*(?:,\s*(\d*\.?\d+)\s*)?\)$/.test(color)) {
+  if (/^(hsl|hsla)\(\s*(\d+(?:\.\d+)?|\.\d+)\s*,\s*(\d+(?:\.\d+)?|\.\d+)%\s*,\s*(\d+(?:\.\d+)?|\.\d+)%\s*(?:,\s*(\d+(?:\.\d+)?|\.\d+)\s*)?\)$/.test(color)) {
     return true
   }
 

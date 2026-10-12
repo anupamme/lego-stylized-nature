@@ -4,12 +4,12 @@ import { random01 } from '../../utils/random.js'
 const HSL_JITTER = {
   hue: 0.08,
   saturation: 0.04,
-  lightness: 0.04
+  lightness: 0.04,
 }
 
 const PART_SEED = {
   root: 41,
-  leaf: 0
+  leaf: 0,
 }
 
 const _color = new THREE.Color()
@@ -24,12 +24,12 @@ export function resolveTreeMaterial(mesh, biomeId, materialCache = new Map()) {
   const cacheKey = `${biomeId}:${part}`
   if (!materialCache.has(cacheKey)) {
     materialCache.set(cacheKey, new THREE.MeshPhysicalMaterial({
-      color: 0xffffff,
+      color: 0xFFFFFF,
       roughness: 0.38,
       metalness: 0.0,
       clearcoat: 0.3,
       clearcoatRoughness: 0.22,
-      ior: 1.5
+      ior: 1.5,
     }))
   }
 

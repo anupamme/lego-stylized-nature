@@ -6,7 +6,7 @@ const DIRECTIONS = [
   [1, 1],
   [1, -1],
   [-1, 1],
-  [-1, -1]
+  [-1, -1],
 ]
 
 const DEFAULT_SAMPLE_DISTANCES = [1, 2, 4, 8]
@@ -94,7 +94,7 @@ export default class HeightfieldAO {
           samples[0],
           samples[distances.length],
           samples[distances.length * 2],
-          samples[distances.length * 3]
+          samples[distances.length * 3],
         )
       }
 
@@ -103,7 +103,7 @@ export default class HeightfieldAO {
         p.layer === 'surface',
         ao,
         cellSize,
-        layerHeight
+        layerHeight,
       )
     }
 

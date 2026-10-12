@@ -6,11 +6,11 @@ const CONTROL_CODES = [
   'ArrowUp',
   'ArrowDown',
   'ArrowLeft',
-  'ArrowRight'
+  'ArrowRight',
 ]
 
 function createEmptyKeys() {
-  return Object.fromEntries(CONTROL_CODES.map((code) => [code, false]))
+  return Object.fromEntries(CONTROL_CODES.map(code => [code, false]))
 }
 
 export default class AircraftInput {
@@ -19,8 +19,8 @@ export default class AircraftInput {
     this.keys = createEmptyKeys()
     this.isAttached = false
 
-    this._onKeyDown = (event) => this.handleKeyDown(event)
-    this._onKeyUp = (event) => this.handleKeyUp(event)
+    this._onKeyDown = event => this.handleKeyDown(event)
+    this._onKeyUp = event => this.handleKeyUp(event)
     this._onBlur = () => this.clear()
   }
 

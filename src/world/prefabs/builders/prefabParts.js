@@ -1,5 +1,5 @@
-import * as THREE from 'three/webgpu'
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js'
+import * as THREE from 'three/webgpu'
 import { createLegoMaterial } from '../../../materials/tsl/legoMaterial.js'
 import { PREFAB_ORIGIN, STUD_HEIGHT, STUD_RADIUS } from './legoUnits.js'
 
@@ -11,17 +11,24 @@ const BOX_BOTTOM = 3
 export function cylinder({ radius, height, segments, top = true, bottom = false }) {
   const geometry = new THREE.CylinderGeometry(radius, radius, height, segments)
   geometry.translate(0, height / 2, 0)
-  return keepGroups(geometry, (index) =>
+  return keepGroups(geometry, index =>
     (index !== CYLINDER_TOP || top) && (index !== CYLINDER_BOTTOM || bottom))
 }
 
 // Partial cylinder. Three's theta range leaves the two cut faces open.
 export function sector({ radius, height, segments, thetaStart = 0, thetaLength, top = true, bottom = false }) {
   const geometry = new THREE.CylinderGeometry(
-    radius, radius, height, segments, 1, false, thetaStart, thetaLength
+    radius,
+    radius,
+    height,
+    segments,
+    1,
+    false,
+    thetaStart,
+    thetaLength,
   )
   geometry.translate(0, height / 2, 0)
-  keepGroups(geometry, (index) =>
+  keepGroups(geometry, index =>
     (index !== CYLINDER_TOP || top) && (index !== CYLINDER_BOTTOM || bottom))
   appendRadialWalls(geometry, radius, height, thetaStart, thetaLength)
   return geometry
@@ -30,7 +37,7 @@ export function sector({ radius, height, segments, thetaStart = 0, thetaLength, 
 export function box({ width, height, depth, bottom = false }) {
   const geometry = new THREE.BoxGeometry(width, height, depth)
   geometry.translate(0, height / 2, 0)
-  return keepGroups(geometry, (index) => index !== BOX_BOTTOM || bottom)
+  return keepGroups(geometry, index => index !== BOX_BOTTOM || bottom)
 }
 
 export function stud() {
@@ -86,7 +93,8 @@ export function makePrefabScene(slots) {
         if (!geometry) {
           throw new Error(`Could not merge prefab slot "${name}"`)
         }
-      } finally {
+      }
+      finally {
         for (const part of mergeable) {
           part.dispose()
         }
@@ -105,12 +113,14 @@ export function makePrefabScene(slots) {
       scene.add(mesh)
     }
     return scene
-  } catch (error) {
+  }
+  catch (error) {
     for (const asset of assets) {
       asset.dispose()
     }
     throw error
-  } finally {
+  }
+  finally {
     for (const part of sourceParts) {
       part.dispose()
     }
@@ -151,8 +161,12 @@ function appendRadialWalls(geometry, radius, height, thetaStart, thetaLength) {
       normals[cursor + 2] = nz
     }
     index.push(
-      offset, offset + (end ? 2 : 1), offset + (end ? 1 : 2),
-      offset, offset + (end ? 3 : 2), offset + (end ? 2 : 3)
+      offset,
+      offset + (end ? 2 : 1),
+      offset + (end ? 1 : 2),
+      offset,
+      offset + (end ? 3 : 2),
+      offset + (end ? 2 : 3),
     )
     offset += 4
   }
@@ -200,7 +214,8 @@ function toMergeable(source) {
     }
     if (normal) {
       geometry.setAttribute('normal', copyVectorAttribute(normal))
-    } else {
+    }
+    else {
       geometry.computeVertexNormals()
     }
     if (geometry.index) {
@@ -209,7 +224,8 @@ function toMergeable(source) {
     const indexed = mergeVertices(geometry, 1e-7)
     geometry.dispose()
     return indexed
-  } catch (error) {
+  }
+  catch (error) {
     geometry.dispose()
     throw error
   }

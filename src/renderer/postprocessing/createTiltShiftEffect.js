@@ -1,10 +1,10 @@
+import { gaussianBlur } from 'three/addons/tsl/display/GaussianBlurNode.js'
 import {
   mix,
   screenUV,
   smoothstep,
-  uniform
+  uniform,
 } from 'three/tsl'
-import { gaussianBlur } from 'three/addons/tsl/display/GaussianBlurNode.js'
 import { TILT_SHIFT_DEFAULTS } from './tiltShiftConfig.js'
 
 const BLUR_RESOLUTION_SCALE = 0.25
@@ -12,28 +12,28 @@ const BLUR_SIGMA = 4
 
 export function createTiltShiftEffect(
   sceneColor,
-  config = TILT_SHIFT_DEFAULTS
+  config = TILT_SHIFT_DEFAULTS,
 ) {
   const uniforms = {
     focusCenter: uniform(
-      config.focusCenter ?? TILT_SHIFT_DEFAULTS.focusCenter
+      config.focusCenter ?? TILT_SHIFT_DEFAULTS.focusCenter,
     ),
     focusWidth: uniform(
-      config.focusWidth ?? TILT_SHIFT_DEFAULTS.focusWidth
+      config.focusWidth ?? TILT_SHIFT_DEFAULTS.focusWidth,
     ),
     falloff: uniform(
-      config.falloff ?? TILT_SHIFT_DEFAULTS.falloff
+      config.falloff ?? TILT_SHIFT_DEFAULTS.falloff,
     ),
     blurStrength: uniform(
-      config.blurStrength ?? TILT_SHIFT_DEFAULTS.blurStrength
-    )
+      config.blurStrength ?? TILT_SHIFT_DEFAULTS.blurStrength,
+    ),
   }
 
   const blurNode = gaussianBlur(
     sceneColor,
     uniforms.blurStrength,
     BLUR_SIGMA,
-    { resolutionScale: BLUR_RESOLUTION_SCALE }
+    { resolutionScale: BLUR_RESOLUTION_SCALE },
   )
 
   const distance = screenUV.y.sub(uniforms.focusCenter).abs()
@@ -41,7 +41,7 @@ export function createTiltShiftEffect(
   const blurMask = smoothstep(
     clearEdge,
     clearEdge.add(uniforms.falloff),
-    distance
+    distance,
   )
   const enabledOutput = mix(sceneColor, blurNode, blurMask)
 
@@ -54,14 +54,14 @@ export function createTiltShiftEffect(
     uniforms,
 
     sync(nextConfig = {}) {
-      uniforms.focusCenter.value =
-        nextConfig.focusCenter ?? uniforms.focusCenter.value
-      uniforms.focusWidth.value =
-        nextConfig.focusWidth ?? uniforms.focusWidth.value
-      uniforms.falloff.value =
-        nextConfig.falloff ?? uniforms.falloff.value
-      uniforms.blurStrength.value =
-        nextConfig.blurStrength ?? uniforms.blurStrength.value
+      uniforms.focusCenter.value
+        = nextConfig.focusCenter ?? uniforms.focusCenter.value
+      uniforms.focusWidth.value
+        = nextConfig.focusWidth ?? uniforms.focusWidth.value
+      uniforms.falloff.value
+        = nextConfig.falloff ?? uniforms.falloff.value
+      uniforms.blurStrength.value
+        = nextConfig.blurStrength ?? uniforms.blurStrength.value
     },
 
     dispose() {
@@ -78,6 +78,6 @@ export function createTiltShiftEffect(
         input.dispose()
       }
       disposed = true
-    }
+    },
   }
 }

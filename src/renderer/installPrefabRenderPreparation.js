@@ -27,17 +27,22 @@ export function installPrefabRenderPreparation(renderer, { budgetMs = 4, maxConc
   let disposed = false
 
   function settleIdle() {
-    if (metrics.pending > 0) return
+    if (metrics.pending > 0)
+      return
     for (const resolve of idleWaiters.splice(0)) resolve()
   }
 
   function finish(record, status) {
-    if (record.status !== 'pending') return
+    if (record.status !== 'pending')
+      return
     record.status = status
     metrics.pending--
-    if (status === 'ready') metrics.prepared++
-    if (status === 'failed') metrics.failed++
-    if (status === 'cancelled') metrics.cancelled++
+    if (status === 'ready')
+      metrics.prepared++
+    if (status === 'failed')
+      metrics.failed++
+    if (status === 'cancelled')
+      metrics.cancelled++
     settleIdle()
   }
 
@@ -56,14 +61,16 @@ export function installPrefabRenderPreparation(renderer, { budgetMs = 4, maxConc
   }
 
   function fail(record, error) {
-    if (record.cancelled || disposed) return
+    if (record.cancelled || disposed)
+      return
     finish(record, 'failed')
     failedObjects.add(record.renderObject.object)
     console.error('[Prefab preparation] Could not prepare render object', error)
     // Release partial resources; the mesh can use Three's normal fallback path.
     try {
       releaseRecord(record)
-    } catch (cleanupError) {
+    }
+    catch (cleanupError) {
       console.error('[Prefab preparation] Could not release failed render object', cleanupError)
     }
   }
@@ -77,7 +84,8 @@ export function installPrefabRenderPreparation(renderer, { budgetMs = 4, maxConc
     pipelineWaits.set(pipeline, waiting)
     metrics.gpuPending = pipelineWaits.size
     const settled = () => {
-      if (pipelineWaits.get(pipeline) === waiting) pipelineWaits.delete(pipeline)
+      if (pipelineWaits.get(pipeline) === waiting)
+        pipelineWaits.delete(pipeline)
       metrics.gpuPending = pipelineWaits.size
       wakeCapacityWaiters()
     }
@@ -88,7 +96,8 @@ export function installPrefabRenderPreparation(renderer, { budgetMs = 4, maxConc
   }
 
   function completePipeline(record) {
-    if (record.cancelled || disposed) return
+    if (record.cancelled || disposed)
+      return
     if (!renderer._pipelines.isReady(record.renderObject)) {
       fail(record, new Error('Prefab render pipeline did not become ready'))
       return
@@ -98,7 +107,8 @@ export function installPrefabRenderPreparation(renderer, { budgetMs = 4, maxConc
 
   function releaseObject(object) {
     const owned = objects.get(object)
-    if (!owned) return
+    if (!owned)
+      return
     object.removeEventListener('dispose', owned.onDispose)
     objects.delete(object)
     for (const record of owned.records) {
@@ -122,7 +132,7 @@ export function installPrefabRenderPreparation(renderer, { budgetMs = 4, maxConc
       // Shadow's shared override material is restored as soon as renderObject()
       // returns. A build must retain the nodes/side chosen for this source mesh.
       material: snapshotMaterial(renderObject.material),
-      context: captureContext(renderer)
+      context: captureContext(renderer),
     }
     records.set(renderObject, record)
     owned.records.add(record)
@@ -145,7 +155,8 @@ export function installPrefabRenderPreparation(renderer, { budgetMs = 4, maxConc
     const start = performance.now()
     try {
       return withContext(renderer, record, () => withInstanceCapacity(record.renderObject.object, work))
-    } finally {
+    }
+    finally {
       const elapsed = performance.now() - start
       metrics.buildMs += elapsed
       metrics.maxSliceMs = Math.max(metrics.maxSliceMs, elapsed)
@@ -172,12 +183,15 @@ export function installPrefabRenderPreparation(renderer, { budgetMs = 4, maxConc
           done = slice(record, () => steps.next().done)
         } while (!done && !record.cancelled && !disposed && performance.now() - started < budgetMs)
         metrics.maxSliceMs = Math.max(metrics.maxSliceMs, performance.now() - started)
-        if (!done) await yieldToBrowser()
+        if (!done)
+          await yieldToBrowser()
       }
-      if (record.cancelled || disposed) return
+      if (record.cancelled || disposed)
+        return
       state = nodes.nodeBuilderCache.get(key) ?? slice(record, () => nodes._createNodeBuilderState(builder))
     }
-    if (record.cancelled || disposed) return
+    if (record.cancelled || disposed)
+      return
 
     if (!isRenderable(renderObject.object)) {
       releaseRecord(record)
@@ -196,17 +210,21 @@ export function installPrefabRenderPreparation(renderer, { budgetMs = 4, maxConc
     let pipeline
     slice(record, () => {
       renderer._geometries.updateForRender(renderObject)
-      if (record.cancelled || disposed) return
+      if (record.cancelled || disposed)
+        return
       nodes.updateForRender(renderObject)
-      if (record.cancelled || disposed) return
+      if (record.cancelled || disposed)
+        return
       renderer._bindings.updateForRender(renderObject)
-      if (record.cancelled || disposed) return
+      if (record.cancelled || disposed)
+        return
       pipeline = withPipelineErrorScopes(renderer.backend, () =>
         renderer._pipelines.getForRender(renderObject, pipelinePromises))
     })
     // updateBefore intentionally runs in the next real render, where shadow
     // draws pass through this same gate with their genuine nested context.
-    if (record.cancelled || disposed) return
+    if (record.cancelled || disposed)
+      return
     const waiting = pipelinePromises.length
       ? trackPipeline(pipeline, pipelinePromises)
       : pipelineWaits.get(pipeline)
@@ -215,13 +233,15 @@ export function installPrefabRenderPreparation(renderer, { budgetMs = 4, maxConc
       // Cache-hit RenderObjects also await a shared pipeline's existing promise.
       waiting.then(() => completePipeline(record), error => fail(record, error))
         .catch(error => fail(record, error))
-    } else {
+    }
+    else {
       completePipeline(record)
     }
   }
 
   async function processQueue() {
-    if (running || disposed) return
+    if (running || disposed)
+      return
     running = true
     await yieldToBrowser()
     try {
@@ -237,15 +257,19 @@ export function installPrefabRenderPreparation(renderer, { budgetMs = 4, maxConc
           continue
         }
         const record = queue.shift()
-        if (record.cancelled) continue
+        if (record.cancelled)
+          continue
         try {
           await prepare(record)
-        } catch (error) {
+        }
+        catch (error) {
           fail(record, error)
         }
-        if (queue.length) await yieldToBrowser()
+        if (queue.length)
+          await yieldToBrowser()
       }
-    } finally {
+    }
+    finally {
       running = false
       settleIdle()
     }
@@ -255,40 +279,47 @@ export function installPrefabRenderPreparation(renderer, { budgetMs = 4, maxConc
     if (disposed || object.userData?.streamingPrefab !== true || failedObjects.has(object)) {
       return originalRender.apply(this, arguments)
     }
-    if (!isRenderable(object)) return
+    if (!isRenderable(object))
+      return
     const renderObject = this._objects.get(object, material, scene, camera, lightsNode, this._currentRenderContext, clippingContext, passId)
     renderObject.drawRange = object.geometry.drawRange
     renderObject.group = group
     const record = records.get(renderObject) ?? enqueue(renderObject)
-    if (record.status === 'ready') return originalRender.apply(this, arguments)
+    if (record.status === 'ready')
+      return originalRender.apply(this, arguments)
   }
   renderer._renderObjectDirect = gate
 
   return {
     metrics,
     whenIdle() {
-      if (metrics.pending === 0) return Promise.resolve()
+      if (metrics.pending === 0)
+        return Promise.resolve()
       return new Promise(resolve => idleWaiters.push(resolve))
     },
     releaseGroup(group) { group.traverse(releaseObject) },
     dispose() {
-      if (disposed) return
+      if (disposed)
+        return
       disposed = true
-      if (renderer._renderObjectDirect === gate) renderer._renderObjectDirect = originalRender
+      if (renderer._renderObjectDirect === gate)
+        renderer._renderObjectDirect = originalRender
       for (const object of [...objects.keys()]) releaseObject(object)
       queue.length = 0
       pipelineWaits.clear()
       metrics.gpuPending = 0
       wakeCapacityWaiters()
       settleIdle()
-    }
+    },
   }
 }
 
 function isRenderable(object) {
-  if (object.isInstancedMesh && object.count === 0) return false
+  if (object.isInstancedMesh && object.count === 0)
+    return false
   for (let ancestor = object; ancestor; ancestor = ancestor.parent) {
-    if (ancestor.visible === false) return false
+    if (ancestor.visible === false)
+      return false
   }
   return true
 }
@@ -314,7 +345,8 @@ function snapshotMaterial(material) {
   const snapshot = material.clone()
   // A custom r185 flag on the shared shadow override material is not copied by
   // NodeMaterial.copy(), but controls its environment cache and output path.
-  if (material.isShadowPassMaterial) snapshot.isShadowPassMaterial = true
+  if (material.isShadowPassMaterial)
+    snapshot.isShadowPassMaterial = true
   return snapshot
 }
 
@@ -327,14 +359,14 @@ function captureContext(renderer) {
     depth: renderer.depth,
     stencil: renderer.stencil,
     renderContext: renderer._currentRenderContext,
-    sourceMaterial: renderer._currentSourceMaterial
+    sourceMaterial: renderer._currentSourceMaterial,
   }
 }
 
 function withContext(renderer, record, work) {
   const previous = captureContext(renderer)
   const previousMaterial = record.renderObject.material
-  const apply = context => {
+  const apply = (context) => {
     renderer.setRenderTarget(context.target, context.cubeFace, context.mipmapLevel)
     renderer.setMRT(context.mrt)
     renderer.depth = context.depth
@@ -346,14 +378,16 @@ function withContext(renderer, record, work) {
     apply(record.context)
     record.renderObject.material = record.material
     return work()
-  } finally {
+  }
+  finally {
     record.renderObject.material = previousMaterial
     apply(previous)
   }
 }
 
 function yieldToBrowser() {
-  if (globalThis.scheduler?.yield) return globalThis.scheduler.yield()
+  if (globalThis.scheduler?.yield)
+    return globalThis.scheduler.yield()
   return new Promise(resolve => setTimeout(resolve, 0))
 }
 
@@ -363,38 +397,47 @@ function yieldToBrowser() {
 // The backend sees its normal device again before any asynchronous yield.
 export function withPipelineErrorScopes(backend, work) {
   const device = backend?.device
-  if (!backend?.isWebGPUBackend || typeof device?.createRenderPipelineAsync !== 'function') return work()
+  if (!backend?.isWebGPUBackend || typeof device?.createRenderPipelineAsync !== 'function')
+    return work()
   const scopes = []
   const scopedDevice = new Proxy(device, {
     get(target, property) {
-      if (property === 'pushErrorScope') return filter => {
-        target.pushErrorScope(filter)
-        scopes.push({ result: null })
+      if (property === 'pushErrorScope') {
+        return (filter) => {
+          target.pushErrorScope(filter)
+          scopes.push({ result: null })
+        }
       }
-      if (property === 'popErrorScope') return () => {
-        const scope = scopes.pop()
-        return scope?.result ?? target.popErrorScope()
+      if (property === 'popErrorScope') {
+        return () => {
+          const scope = scopes.pop()
+          return scope?.result ?? target.popErrorScope()
+        }
       }
-      if (property === 'createRenderPipelineAsync') return descriptor => {
-        try {
-          return target.createRenderPipelineAsync(descriptor)
-        } finally {
-          const scope = scopes.at(-1)
-          if (scope && !scope.result) {
+      if (property === 'createRenderPipelineAsync') {
+        return (descriptor) => {
+          try {
+            return target.createRenderPipelineAsync(descriptor)
+          }
+          finally {
+            const scope = scopes.at(-1)
+            if (scope && !scope.result) {
             // popErrorScope can reject when a device is lost. Preserve the
             // pipeline's diagnostic path without an unhandled rejected wait.
-            scope.result = target.popErrorScope().catch(error => ({ message: String(error?.message ?? error) }))
+              scope.result = target.popErrorScope().catch(error => ({ message: String(error?.message ?? error) }))
+            }
           }
         }
       }
       const value = Reflect.get(target, property, target)
       return typeof value === 'function' ? value.bind(target) : value
-    }
+    },
   })
   backend.device = scopedDevice
   try {
     return work()
-  } finally {
+  }
+  finally {
     backend.device = device
   }
 }

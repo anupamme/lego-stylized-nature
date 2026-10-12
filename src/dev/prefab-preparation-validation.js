@@ -1,9 +1,10 @@
 import * as THREE from 'three/webgpu'
-import Renderer from '../renderer/Renderer.js'
 import Experience from '../app/Experience.js'
+import Renderer from '../renderer/Renderer.js'
 
 // This entry is opt-in and is never imported by the application.
-if (!import.meta.env.DEV) throw new Error('Prefab validation requires the development server')
+if (!import.meta.env.DEV)
+  throw new Error('Prefab validation requires the development server')
 
 const button = document.querySelector('#run')
 const worldButton = document.querySelector('#run-world')
@@ -24,15 +25,17 @@ function displayResult(result) {
   const visited = latest.find(record => record.visitedBiomes)?.visitedBiomes
     ?? [...new Set(result.records.filter(record => record.name === 'world-route-point').map(record => record.point.biome))]
   const parts = [result.status.toUpperCase()]
-  if (result.kind === 'world-route') parts.push(`Biomes: ${visited.join(', ') || 'pending'}`)
+  if (result.kind === 'world-route')
+    parts.push(`Biomes: ${visited.join(', ') || 'pending'}`)
   parts.push(`Sync TSL misses: ${misses ?? 'pending'}`)
-  if (preparation) parts.push(`Prep max slice: ${Number(preparation.maxSliceMs).toFixed(2)} ms`)
+  if (preparation)
+    parts.push(`Prep max slice: ${Number(preparation.maxSliceMs).toFixed(2)} ms`)
   summary.textContent = parts.join(' · ')
   summary.dataset.status = result.status
   saveLink.setAttribute('aria-disabled', 'false')
 }
 
-saveLink.addEventListener('click', event => {
+saveLink.addEventListener('click', (event) => {
   if (!displayedResult) {
     event.preventDefault()
     return
@@ -44,7 +47,8 @@ saveLink.addEventListener('click', event => {
 })
 
 function assert(condition, message) {
-  if (!condition) throw new Error(message)
+  if (!condition)
+    throw new Error(message)
 }
 
 async function waitForPreparation(preparation) {
@@ -54,9 +58,10 @@ async function waitForPreparation(preparation) {
       preparation.whenIdle(),
       new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error('Prefab preparation did not become idle in 30 seconds')), 30000)
-      })
+      }),
     ])
-  } finally {
+  }
+  finally {
     clearTimeout(timer)
   }
 }
@@ -84,13 +89,13 @@ function createScene() {
   const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 40)
   camera.position.set(5, 4, 7)
   camera.lookAt(0, 0, 0)
-  const light = new THREE.DirectionalLight(0xffffff, 3)
+  const light = new THREE.DirectionalLight(0xFFFFFF, 3)
   light.position.set(3, 7, 4)
   light.castShadow = true
   light.shadow.mapSize.set(256, 256)
   Object.assign(light.shadow.camera, { left: -5, right: 5, top: 5, bottom: -5, near: 0.1, far: 20 })
   light.shadow.camera.updateProjectionMatrix()
-  scene.add(light, new THREE.AmbientLight(0xffffff, 0.8))
+  scene.add(light, new THREE.AmbientLight(0xFFFFFF, 0.8))
   const floorGeometry = new THREE.PlaneGeometry(12, 12)
   const floorMaterial = new THREE.MeshStandardNodeMaterial({ color: '#7d8790', roughness: 1 })
   const floor = new THREE.Mesh(floorGeometry, floorMaterial)
@@ -104,7 +109,7 @@ async function runValidation() {
   const result = { status: 'running', records: [] }
   window.__prefabValidation = result
   window.__prefabValidationResult = result
-  const record = value => {
+  const record = (value) => {
     result.records.push(value)
     displayResult(result)
     console.info('[PrefabPreparationValidation]', JSON.stringify(value))
@@ -158,7 +163,7 @@ async function runValidation() {
           object: renderObject.object,
           pass: renderObject.material.isShadowPassMaterial === true ? 'shadow' : 'main',
           contextId: renderObject.context.id,
-          cacheKey: nodes.getForRenderCacheKey(renderObject)
+          cacheKey: nodes.getForRenderCacheKey(renderObject),
         })
       }
       return renderObject
@@ -194,10 +199,13 @@ async function runValidation() {
     monitorPromise = (async () => {
       while (!stopMonitoring) {
         await nextFrame()
-        if (stopMonitoring) break
+        if (stopMonitoring)
+          break
         observedWaitFrames++
-        if (prefab.count !== 1) liveStateViolation = `Draw count changed across an asynchronous yield: ${prefab.count}`
-        if (raw.getRenderTarget() !== null) liveStateViolation = 'A shadow render target escaped an asynchronous build slice'
+        if (prefab.count !== 1)
+          liveStateViolation = `Draw count changed across an asynchronous yield: ${prefab.count}`
+        if (raw.getRenderTarget() !== null)
+          liveStateViolation = 'A shadow render target escaped an asynchronous build slice'
       }
     })()
     let rounds = 0
@@ -227,8 +235,7 @@ async function runValidation() {
       .map(([renderObject, value]) => {
         const state = nodes.get(renderObject).nodeBuilderState
         assert(state, `${value.pass} render object is missing its prepared node state`)
-        assert(/array<\s*mat4x4<f32>\s*,\s*32\s*>/.test(state.vertexShader),
-          `${value.pass} WGSL matrix array does not cover the 32-instance pool`)
+        assert(/array<\s*mat4x4<f32>\s*,\s*32\s*>/.test(state.vertexShader), `${value.pass} WGSL matrix array does not cover the 32-instance pool`)
         return { pass: value.pass, contextId: value.contextId, compiledCapacity: 32 }
       })
     assert(new Set(passes.map(value => value.contextId)).size >= 2, 'Main and shadow render objects did not use distinct real contexts')
@@ -242,7 +249,7 @@ async function runValidation() {
       liveCount: prefab.count,
       observedWaitFrames,
       renderCpuMs: renderTimes.map(value => Number(value.toFixed(3))),
-      preparation: { ...preparation.metrics }
+      preparation: { ...preparation.metrics },
     })
     const queuedBeforeGrowth = preparation.metrics.queued
     prefab.count = 32
@@ -265,12 +272,12 @@ async function runValidation() {
       assert(compiledObjects.length > 0, 'Public compileAsync did not create a real render object')
       for (const [renderObject] of compiledObjects) {
         const state = nodes.get(renderObject).nodeBuilderState
-        assert(state && /array<\s*mat4x4<f32>\s*,\s*32\s*>/.test(state.vertexShader),
-          'Public compileAsync did not preserve the 32-instance matrix capacity')
+        assert(state && /array<\s*mat4x4<f32>\s*,\s*32\s*>/.test(state.vertexShader), 'Public compileAsync did not preserve the 32-instance matrix capacity')
       }
       assert(compileProbe.count === 1, 'Public compileAsync changed the live draw count')
       record({ name: 'public-compile-async-capacity', compiledCapacity: 32, liveCount: compileProbe.count })
-    } finally {
+    }
+    finally {
       scene.remove(compileProbe)
       renderer.releaseSceneObjects(compileProbe)
       compileProbe.dispose()
@@ -308,29 +315,36 @@ async function runValidation() {
     if (errorScopeOpen) {
       const error = await device.popErrorScope()
       errorScopeOpen = false
-      if (error) gpuErrors.push(error.message)
+      if (error)
+        gpuErrors.push(error.message)
     }
     assert(gpuErrors.length === 0, `WebGPU validation errors: ${gpuErrors.join('; ')}`)
     record({ name: 'dispose-pending-renderer', pending: preparation.metrics.pending, webGpuErrors: gpuErrors })
     result.status = 'passed'
-  } catch (error) {
+  }
+  catch (error) {
     result.status = 'failed'
     result.error = { message: error.message, stack: error.stack }
     result.preparation = { ...renderer.prefabPreparation?.metrics }
     console.error('[PrefabPreparationValidation]', error)
-  } finally {
+  }
+  finally {
     stopMonitoring = true
     await monitorPromise
     restoreProbes()
     renderer.releaseSceneObjects(scene)
     renderer.dispose()
-    scene.traverse(object => { if (object.isInstancedMesh) object.dispose() })
+    scene.traverse((object) => {
+      if (object.isInstancedMesh)
+        object.dispose()
+    })
     geometry.dispose()
     material.dispose()
     floorGeometry.dispose()
     floorMaterial.dispose()
     light.shadow.dispose()
-    if (errorScopeOpen) await device.popErrorScope()
+    if (errorScopeOpen)
+      await device.popErrorScope()
     device?.removeEventListener('uncapturederror', onGpuError)
     displayResult(result)
   }
@@ -360,11 +374,13 @@ function chooseWorldRoute(world) {
   for (let radius = 0; radius <= 6 && byBiome.size < expectedBiomes.length; radius++) {
     for (let gz = -radius; gz <= radius; gz++) {
       for (let gx = -radius; gx <= radius; gx++) {
-        if (Math.max(Math.abs(gx), Math.abs(gz)) !== radius) continue
+        if (Math.max(Math.abs(gx), Math.abs(gz)) !== radius)
+          continue
         const x = Math.floor((gx + 0.5) * config.biomes.cellSize / chunkSize) * chunkSize + Math.floor(chunkSize / 2)
         const z = Math.floor((gz + 0.5) * config.biomes.cellSize / chunkSize) * chunkSize + Math.floor(chunkSize / 2)
         const point = sample(x, z)
-        if (!byBiome.has(point.biome)) byBiome.set(point.biome, point)
+        if (!byBiome.has(point.biome))
+          byBiome.set(point.biome, point)
       }
     }
   }
@@ -379,7 +395,7 @@ async function runWorldRoute() {
   const result = { status: 'running', kind: 'world-route', records: [] }
   window.__worldRouteValidation = result
   window.__worldRouteValidationResult = result
-  const record = value => {
+  const record = (value) => {
     result.records.push(value)
     displayResult(result)
     console.info('[WorldRouteValidation]', JSON.stringify(value))
@@ -421,7 +437,7 @@ async function runWorldRoute() {
       init: { ...experience.initTimings },
       route,
       preparation: { ...preparation.metrics },
-      note: 'Frame times include real terrain generation and uploads. This check has no absolute FPS threshold.'
+      note: 'Frame times include real terrain generation and uploads. This check has no absolute FPS threshold.',
     })
     const nodes = raw._nodes
     const originalGet = nodes.getForRender
@@ -439,7 +455,7 @@ async function runWorldRoute() {
             bucket: renderObject.object.userData.prefabBucketKey,
             id: renderObject.id,
             contextId: renderObject.context.id,
-            shadow: renderObject.material.isShadowPassMaterial === true
+            shadow: renderObject.material.isShadowPassMaterial === true,
           })
         }
       }
@@ -449,7 +465,8 @@ async function runWorldRoute() {
       const started = performance.now()
       try {
         return originalRender.apply(this, args)
-      } finally {
+      }
+      finally {
         currentRenderMs = performance.now() - started
       }
     }
@@ -457,7 +474,8 @@ async function runWorldRoute() {
       const started = performance.now()
       try {
         return originalWorldUpdate.apply(this, args)
-      } finally {
+      }
+      finally {
         currentWorldUpdateMs = performance.now() - started
       }
     }
@@ -488,7 +506,7 @@ async function runWorldRoute() {
         renderMs: currentRenderMs,
         pendingPreparation: preparation.metrics.pending,
         chunkBuilds: manager.buildTimings.builds,
-        chunkBuildMs: manager.buildTimings.totalMs
+        chunkBuildMs: manager.buildTimings.totalMs,
       })
       previousTimestamp = timestamp
     }
@@ -512,7 +530,7 @@ async function runWorldRoute() {
         cpuMs: summarize(frames.map(frame => frame.cpuMs)),
         worldUpdateMs: summarize(frames.map(frame => frame.worldUpdateMs)),
         renderMs: summarize(frames.map(frame => frame.renderMs)),
-        rafIntervalMs: summarize(frames.flatMap(frame => frame.intervalMs === null ? [] : [frame.intervalMs]))
+        rafIntervalMs: summarize(frames.flatMap(frame => frame.intervalMs === null ? [] : [frame.intervalMs])),
       })
     }
     let stableFrames = 0
@@ -527,14 +545,14 @@ async function runWorldRoute() {
         && preparation.metrics.pending === 0
         && preparation.metrics.prepared === preparedBefore
       stableFrames = idle ? stableFrames + 1 : 0
-      assert(drainFrames <= 1200 && performance.now() - drainStarted < 30000,
-        `World route did not drain its queues: ${JSON.stringify({ terrain: manager.pendingQueue.length, prefab: manager.pendingPrefabBuildQueue.length, preparation: preparation.metrics.pending })}`)
+      assert(drainFrames <= 1200 && performance.now() - drainStarted < 30000, `World route did not drain its queues: ${JSON.stringify({ terrain: manager.pendingQueue.length, prefab: manager.pendingPrefabBuildQueue.length, preparation: preparation.metrics.pending })}`)
     }
     await waitForPreparation(preparation)
     if (errorScopeOpen) {
       const error = await device.popErrorScope()
       errorScopeOpen = false
-      if (error) gpuErrors.push(error.message)
+      if (error)
+        gpuErrors.push(error.message)
     }
     record({
       name: 'world-route-complete',
@@ -552,7 +570,7 @@ async function runWorldRoute() {
       rafIntervalMs: summarize(frameRecords.flatMap(frame => frame.intervalMs === null ? [] : [frame.intervalMs])),
       terrainBuild: { ...manager.buildTimings },
       queues: { terrain: manager.pendingQueue.length, prefab: manager.pendingPrefabBuildQueue.length, preparation: preparation.metrics.pending },
-      webGpuErrors: gpuErrors
+      webGpuErrors: gpuErrors,
     })
     assert(visitedBiomes.size >= 3, 'The world route did not visit three distinct biomes')
     assert(syncMisses.length === 0, `World prefabs incurred synchronous TSL builds: ${JSON.stringify(syncMisses)}`)
@@ -561,14 +579,17 @@ async function runWorldRoute() {
     assert(preparation.metrics.prepared > preparedBeforeRoute, 'The route did not exercise cold prefab preparation')
     assert(gpuErrors.length === 0, `World route WebGPU validation errors: ${gpuErrors.join('; ')}`)
     result.status = 'passed'
-  } catch (error) {
+  }
+  catch (error) {
     result.status = 'failed'
     result.error = { message: error.message, stack: error.stack }
     result.preparation = { ...experience.renderer.prefabPreparation?.metrics }
     console.error('[WorldRouteValidation]', error)
-  } finally {
+  }
+  finally {
     restoreProbes()
-    if (errorScopeOpen) await device.popErrorScope()
+    if (errorScopeOpen)
+      await device.popErrorScope()
     device?.removeEventListener('uncapturederror', onGpuError)
     experience.dispose()
     displayResult(result)
@@ -578,7 +599,8 @@ async function runWorldRoute() {
 
 let activeValidationPromise
 function launchValidation(run) {
-  if (activeValidationPromise) return activeValidationPromise
+  if (activeValidationPromise)
+    return activeValidationPromise
   button.disabled = true
   worldButton.disabled = true
   activeValidationPromise = run().finally(() => {

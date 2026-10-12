@@ -10,5 +10,5 @@ export const LEGO_COLORS = {
   reedStem: '#4c7720',
   volcanoLava: '#ff1f06',
   volcanoRock: '#1e1e1e',
-  white: '#ffffff'
+  white: '#ffffff',
 }

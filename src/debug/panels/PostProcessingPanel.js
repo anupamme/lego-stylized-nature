@@ -1,9 +1,9 @@
 import {
-  TILT_SHIFT_RANGES
-} from '../../renderer/postprocessing/tiltShiftConfig.js'
-import {
-  SPEED_LINES_RANGES
+  SPEED_LINES_RANGES,
 } from '../../renderer/postprocessing/speedLinesConfig.js'
+import {
+  TILT_SHIFT_RANGES,
+} from '../../renderer/postprocessing/tiltShiftConfig.js'
 
 export function createPostProcessingPanel(debug, config, controller) {
   const tiltShift = config.postProcessing?.tiltShift
@@ -14,7 +14,7 @@ export function createPostProcessingPanel(debug, config, controller) {
 
   const folder = debug.addFolder({
     title: 'Post Processing',
-    expanded: false
+    expanded: false,
   })
   if (!folder) {
     return
@@ -32,12 +32,12 @@ export function createPostProcessingPanel(debug, config, controller) {
       'focusCenter',
       'focusWidth',
       'falloff',
-      'blurStrength'
+      'blurStrength',
     ]) {
       folder
         .addBinding(tiltShift, key, {
           ...TILT_SHIFT_RANGES[key],
-          label: key
+          label: key,
         })
         .on('change', ({ value }) => {
           tiltShift[key] = value
@@ -49,7 +49,7 @@ export function createPostProcessingPanel(debug, config, controller) {
   if (speedLines) {
     const speedLinesFolder = folder.addFolder({
       title: 'Speed Lines',
-      expanded: false
+      expanded: false,
     })
 
     speedLinesFolder
@@ -62,7 +62,7 @@ export function createPostProcessingPanel(debug, config, controller) {
     speedLinesFolder
       .addBinding(speedLines, 'opacity', {
         ...SPEED_LINES_RANGES.opacity,
-        label: 'opacity'
+        label: 'opacity',
       })
       .on('change', ({ value }) => {
         speedLines.opacity = value
@@ -75,12 +75,12 @@ export function createPostProcessingPanel(debug, config, controller) {
       'thickness',
       'minRadius',
       'maxRadius',
-      'randomness'
+      'randomness',
     ]) {
       speedLinesFolder
         .addBinding(speedLines, key, {
           ...SPEED_LINES_RANGES[key],
-          label: key
+          label: key,
         })
         .on('change', () => {
           controller.syncSpeedLines(speedLines)

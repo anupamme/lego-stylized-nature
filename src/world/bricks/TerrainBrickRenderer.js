@@ -46,7 +46,7 @@ export default class TerrainBrickRenderer {
       matrix.setPosition(
         (p.x + 0.5) * cellSize,
         p.y * layerHeight,
-        (p.z + 0.5) * cellSize
+        (p.z + 0.5) * cellSize,
       )
       this.mesh.setMatrixAt(i, matrix)
     })
@@ -90,14 +90,17 @@ export default class TerrainBrickRenderer {
       if (aoPreview && ao) {
         const aoValue = ao.get(i)
         color.setRGB(aoValue, aoValue, aoValue)
-      } else if (colorPreview === 'noise' && this._colorResolver.sampleTone) {
+      }
+      else if (colorPreview === 'noise' && this._colorResolver.sampleTone) {
         tone = this._colorResolver.sampleTone(sample)
         color.setRGB(tone, tone, tone)
-      } else {
+      }
+      else {
         if (this._colorResolver.resolveColor) {
           this._colorResolver.resolveColor(sample, color)
           tone = this._colorResolver.lastTone
-        } else {
+        }
+        else {
           color.set(this._colorResolver.resolve(sample))
         }
 

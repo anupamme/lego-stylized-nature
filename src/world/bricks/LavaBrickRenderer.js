@@ -26,7 +26,7 @@ export default class LavaBrickRenderer {
           cells.push({
             x: localX,
             z: localZ,
-            height: surfaceCell.lavaHeight ?? surfaceCell.height
+            height: surfaceCell.lavaHeight ?? surfaceCell.height,
           })
         }
       }
@@ -50,7 +50,7 @@ export default class LavaBrickRenderer {
       matrix.setPosition(
         (cell.x + 0.5) * cellSize,
         cell.height * layerHeight,
-        (cell.z + 0.5) * cellSize
+        (cell.z + 0.5) * cellSize,
       )
       this.mesh.setMatrixAt(i, matrix)
     })

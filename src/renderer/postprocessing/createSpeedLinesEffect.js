@@ -1,22 +1,21 @@
-import * as THREE from 'three/webgpu'
 import {
-  Fn,
   abs,
   atan,
   float,
   floor,
+  Fn,
   fract,
   mix,
-  sin,
+  screenUV,
   smoothstep,
   step,
   uniform,
-  screenUV,
-  vec4
+  vec4,
 } from 'three/tsl'
+import * as THREE from 'three/webgpu'
 import {
   normalizeSpeedLinesConfig,
-  SPEED_LINES_DEFAULTS
+  SPEED_LINES_DEFAULTS,
 } from './speedLinesConfig.js'
 
 function applyConfigToUniforms(uniforms, config) {
@@ -33,7 +32,7 @@ function applyConfigToUniforms(uniforms, config) {
   uniforms.uColor.value.setRGB(
     normalized.color.r / 255,
     normalized.color.g / 255,
-    normalized.color.b / 255
+    normalized.color.b / 255,
   )
 
   return normalized
@@ -45,7 +44,7 @@ function applyConfigToUniforms(uniforms, config) {
  */
 export function createSpeedLinesEffect(
   sceneColor,
-  config = SPEED_LINES_DEFAULTS
+  config = SPEED_LINES_DEFAULTS,
 ) {
   const normalized = normalizeSpeedLinesConfig(config)
 
@@ -55,7 +54,7 @@ export function createSpeedLinesEffect(
     uColor: uniform(new THREE.Color(
       normalized.color.r / 255,
       normalized.color.g / 255,
-      normalized.color.b / 255
+      normalized.color.b / 255,
     )),
     uDensity: uniform(normalized.density),
     uSpeed: uniform(normalized.speed),
@@ -63,7 +62,7 @@ export function createSpeedLinesEffect(
     uMinRadius: uniform(normalized.minRadius),
     uMaxRadius: uniform(normalized.maxRadius),
     uRandomness: uniform(normalized.randomness),
-    uEnabled: uniform(normalized.enabled ? 1 : 0)
+    uEnabled: uniform(normalized.enabled ? 1 : 0),
   }
 
   const random = Fn(([seed]) => {
@@ -109,7 +108,7 @@ export function createSpeedLinesEffect(
     const angleFromCenter = abs(
       sectorProgress
         .sub(sectorCenter)
-        .add(angleOffset)
+        .add(angleOffset),
     )
 
     const halfWidth = uniforms.uThickness.mul(0.5)
@@ -126,22 +125,22 @@ export function createSpeedLinesEffect(
       smoothstep(
         allowedWidth.sub(edgeSoftness),
         allowedWidth,
-        angleFromCenter
-      )
+        angleFromCenter,
+      ),
     )
 
     const tipSoftEdge = smoothstep(
       tipRadius.sub(edgeSoftness),
       tipRadius.add(edgeSoftness),
-      radius
+      radius,
     )
 
     const baseSoftEdge = float(1.0).sub(
       smoothstep(
         baseRadius.sub(edgeSoftness),
         baseRadius,
-        radius
-      )
+        radius,
+      ),
     )
 
     const softEdge = angleSoftEdge
@@ -179,6 +178,6 @@ export function createSpeedLinesEffect(
 
     sync(nextConfig = {}) {
       return applyConfigToUniforms(uniforms, nextConfig)
-    }
+    },
   }
 }

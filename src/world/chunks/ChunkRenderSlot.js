@@ -2,7 +2,7 @@ import * as THREE from 'three/webgpu'
 import {
   getRenderChunkKey,
   getRenderChunkOrigin,
-  getRenderChunkWorldPosition
+  getRenderChunkWorldPosition,
 } from './chunkCoordinates.js'
 
 export default class ChunkRenderSlot {
@@ -14,7 +14,7 @@ export default class ChunkRenderSlot {
     heightfieldAO,
     prefabPlacer = null,
     waterRenderer = null,
-    lavaRenderer = null
+    lavaRenderer = null,
   }) {
     this.index = index
     this.chunkSize = chunkSize
@@ -83,7 +83,7 @@ export default class ChunkRenderSlot {
     terrainMap,
     placements,
     colorResolver,
-    debugSpacing = 0
+    debugSpacing = 0,
   }) {
     this.coord = { ...coord }
     this.origin = getRenderChunkOrigin(coord, this.chunkSize)
@@ -139,7 +139,7 @@ export default class ChunkRenderSlot {
       this.coord,
       this.chunkSize,
       this.cellSize,
-      debugSpacing
+      debugSpacing,
     )
     this.group.position.set(position.x, 0, position.z)
   }

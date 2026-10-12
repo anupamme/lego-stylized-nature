@@ -1,11 +1,11 @@
-import * as THREE from 'three/webgpu'
 import { createNoise2D, createNoise3D } from 'simplex-noise'
+import * as THREE from 'three/webgpu'
 import { mulberry32, random01 } from '../../utils/random.js'
 import {
   createDefaultColorPalette,
   ensureTerrainColorSettings,
   prepareColorPalette,
-  sampleColorPalette
+  sampleColorPalette,
 } from './terrainColorScheme.js'
 
 export default class BrickColorResolver {
@@ -62,14 +62,17 @@ export default class BrickColorResolver {
     // Bias by the generated column height, rather than replacing the noise field with altitude bands.
     const height = Number.isFinite(surfaceCell?.height) ? surfaceCell.height : y
     const height01 = THREE.MathUtils.clamp(
-      (height - settings.heightMin) / Math.max(Number.EPSILON, settings.heightMax - settings.heightMin), 0, 1
+      (height - settings.heightMin) / Math.max(Number.EPSILON, settings.heightMax - settings.heightMin),
+      0,
+      1,
     )
     const heightBias = (height01 - 0.5) * settings.heightInfluence
     return THREE.MathUtils.clamp(0.5 + noise * 0.5 * settings.contrast + settings.bias + heightBias + micro, 0, 1)
   }
 
   ensureNoise() {
-    if (this._noiseSeed === this.settings.seed) return
+    if (this._noiseSeed === this.settings.seed)
+      return
     this._noiseSeed = this.settings.seed
     this._noise2D = createNoise2D(mulberry32(this._noiseSeed))
     this._noise3D = createNoise3D(mulberry32(this._noiseSeed + 104729))

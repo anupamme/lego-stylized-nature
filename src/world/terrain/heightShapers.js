@@ -41,7 +41,7 @@ function resolveNoise(terrain, params) {
     scale: noise.scale ?? terrain.noiseScale,
     octaves: noise.octaves ?? terrain.noiseOctaves,
     gain: noise.gain ?? terrain.noiseGain,
-    lacunarity: noise.lacunarity ?? terrain.noiseLacunarity
+    lacunarity: noise.lacunarity ?? terrain.noiseLacunarity,
   }
 }
 
@@ -51,7 +51,7 @@ function sampleNoise(x, z, noise2D, terrain, params, defaultOffset) {
     noise2D,
     x + (offset.x ?? 0),
     z + (offset.z ?? 0),
-    resolveNoise(terrain, params)
+    resolveNoise(terrain, params),
   )
 }
 

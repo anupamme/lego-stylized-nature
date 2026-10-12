@@ -1,16 +1,16 @@
-import { TILT_SHIFT_DEFAULTS } from '../renderer/postprocessing/tiltShiftConfig.js'
 import { SPEED_LINES_DEFAULTS } from '../renderer/postprocessing/speedLinesConfig.js'
+import { TILT_SHIFT_DEFAULTS } from '../renderer/postprocessing/tiltShiftConfig.js'
 import { createTerrainColorSettings } from './bricks/terrainColorScheme.js'
 
 export const worldConfig = {
   seed: 20260608,
   postProcessing: {
-    enabled: false,
+    enabled: true,
     tiltShift: { ...TILT_SHIFT_DEFAULTS },
     speedLines: {
       ...SPEED_LINES_DEFAULTS,
-      color: { ...SPEED_LINES_DEFAULTS.color }
-    }
+      color: { ...SPEED_LINES_DEFAULTS.color },
+    },
   },
   terrain: {
     width: 128,
@@ -35,8 +35,8 @@ export const worldConfig = {
       distanceFalloff: 0.25,
       creviceScale: 2.5,
       horizonWeight: 0.61,
-      creviceWeight: 0.42
-    }
+      creviceWeight: 0.42,
+    },
   },
   biomes: {
     cellSize: 192,
@@ -48,8 +48,8 @@ export const worldConfig = {
       { id: 'forest', weight: 4 },
       { id: 'autumnForest', weight: 3 },
       { id: 'desert', weight: 2 },
-      { id: 'volcano', weight: 1 }
-    ]
+      { id: 'volcano', weight: 1 },
+    ],
   },
   placement: {
     enablePrefabs: true,
@@ -63,8 +63,8 @@ export const worldConfig = {
       plant: 256,
       waterAccent: 64,
       waterPlant: 64,
-      prop: 128
-    }
+      prop: 128,
+    },
   },
   chunks: {
     enabled: true,
@@ -76,13 +76,13 @@ export const worldConfig = {
     maxPrefabBuildsPerFrame: 1,
     visibilityPadding: 1,
     /** World-unit gap between adjacent chunks. */
-    debugSpacing: 0
+    debugSpacing: 0,
   },
   player: {
     aircraft: {
       enabled: true,
       assetName: 'playerAircraftModel',
-      height: 7.2,
+      height: 5.5,
       scale: 1,
       thrust: 16,
       reverseThrust: 8,
@@ -95,7 +95,7 @@ export const worldConfig = {
       maxAngularSpeed: 2.8,
       cameraFollow: {
         enabled: true,
-        smoothing: 8
+        smoothing: 8,
 
       },
       visualAttitude: {
@@ -108,7 +108,7 @@ export const worldConfig = {
         hover: {
           amplitude: 0.06,
           frequency: 0.7,
-          fadeSpeedRatio: 0.25
+          fadeSpeedRatio: 0.25,
         },
         turbulence: {
           enabled: true,
@@ -122,7 +122,7 @@ export const worldConfig = {
           yawFrequencyScale: 0.75,
           verticalFrequencyScale: 1.6,
           minSpeedRatio: 0.05,
-          fullSpeedRatio: 0.45
+          fullSpeedRatio: 0.45,
         },
         thrusters: {
           enabled: true,
@@ -130,8 +130,8 @@ export const worldConfig = {
           thrustBoost: 0.65,
           turnBias: 0.25,
           leftNodeName: 'left_engine',
-          rightNodeName: 'right_engine'
-        }
+          rightNodeName: 'right_engine',
+        },
       },
       engineFlame: {
         enabled: true,
@@ -140,7 +140,7 @@ export const worldConfig = {
         radius: 0.03,
         speed: 1.05,
         respondToThrusters: true,
-        minIntensity: 0.15
+        minIntensity: 0.15,
       },
       wingAirflow: {
         enabled: true,
@@ -148,7 +148,7 @@ export const worldConfig = {
           wingHalfWidth: 0.40,
           outwardOffset: 0.1,
           backOffset: -0.21,
-          upOffset: 0.03
+          upOffset: 0.03,
         },
         sampleLife: 0.56,
         emitInterval: 0.034,
@@ -167,9 +167,9 @@ export const worldConfig = {
         pulseStrength: 0.01,
         color: '#f7fbff',
         additive: true,
-        showAnchors: false
-      }
-    }
+        showAnchors: false,
+      },
+    },
   },
   water: {
     enableWater: true,
@@ -183,6 +183,6 @@ export const worldConfig = {
     flowVariance: 0.55,
     roughness: 0.3,
     clearcoat: 0.45,
-    clearcoatRoughness: 0.2
-  }
+    clearcoatRoughness: 0.2,
+  },
 }

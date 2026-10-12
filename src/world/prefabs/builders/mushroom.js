@@ -28,11 +28,11 @@ export function buildMushroom() {
       color: LEGO_COLORS.mushroomStem,
       parts: [
         box({ width: 0.08, height: BASE_HEIGHT, depth: 0.08 }),
-        cylinder({ radius: 0.02, height: STEM_HEIGHT, segments: 8, top: false }).translate(0, BASE_HEIGHT, 0)
-      ]
+        cylinder({ radius: 0.02, height: STEM_HEIGHT, segments: 8, top: false }).translate(0, BASE_HEIGHT, 0),
+      ],
     },
     { name: 'mushroom_InstanceColor', color: LEGO_COLORS.white, parts: [dome, underside] },
-    { name: 'leaf', color: LEGO_COLORS.mushroomSpot, parts: spots }
+    { name: 'leaf', color: LEGO_COLORS.mushroomSpot, parts: spots },
   ])
 }
 

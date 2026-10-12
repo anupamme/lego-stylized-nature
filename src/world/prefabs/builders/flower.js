@@ -16,7 +16,7 @@ const HEART = [
   [0, 0],
   [0.2, -0.2],
   [0.55, -0.52],
-  [1, -0.42]
+  [1, -0.42],
 ]
 
 const ARMS = [
@@ -25,14 +25,14 @@ const ARMS = [
   { kind: 'leaf', azimuth: (2 * Math.PI) / 3, reach: 0.058, rise: 0.09 },
   { kind: 'flower', azimuth: Math.PI, reach: 0.078, rise: 0.112 },
   { kind: 'leaf', azimuth: (4 * Math.PI) / 3, reach: 0.058, rise: 0.09 },
-  { kind: 'flower', azimuth: (5 * Math.PI) / 3, reach: 0.078, rise: 0.112 }
+  { kind: 'flower', azimuth: (5 * Math.PI) / 3, reach: 0.078, rise: 0.112 },
 ]
 
 export function buildFlower() {
   const root = [
     cylinder({ radius: 0.046, height: BASE_HEIGHT, segments: 8 }),
     stud().translate(0, BASE_HEIGHT, 0),
-    cylinder({ radius: 0.028, height: 0.012, segments: 8 }).translate(0, STEM_Y, 0)
+    cylinder({ radius: 0.028, height: 0.012, segments: 8 }).translate(0, STEM_Y, 0),
   ]
   const heads = []
 
@@ -47,19 +47,20 @@ export function buildFlower() {
         heads.push(flowerPetal(azimuth + petal * Math.PI / 2).translate(tip.x, tip.y, tip.z))
       }
       heads.push(stud().translate(tip.x, tip.y + HEAD_HEIGHT, tip.z))
-    } else {
+    }
+    else {
       root.push(
         heartLeaf(0.098, 0.08, 0.01)
           .rotateZ(0.32)
           .rotateY(azimuth)
-          .translate(tip.x, tip.y, tip.z)
+          .translate(tip.x, tip.y, tip.z),
       )
     }
   }
 
   return makePrefabScene([
     { name: 'flower_root', color: LEGO_COLORS.green, parts: root },
-    { name: 'flower_InstanceColor', color: LEGO_COLORS.white, parts: heads }
+    { name: 'flower_InstanceColor', color: LEGO_COLORS.white, parts: heads },
   ])
 }
 
@@ -75,7 +76,7 @@ function stemTip(length, tilt, azimuth) {
   return {
     x: reach * Math.cos(azimuth),
     y: STEM_Y + length * Math.cos(tilt),
-    z: -reach * Math.sin(azimuth)
+    z: -reach * Math.sin(azimuth),
   }
 }
 

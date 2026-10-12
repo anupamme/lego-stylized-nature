@@ -22,7 +22,8 @@ export function installObjectResourceCleanup(renderer) {
       if (object.isInstancedMesh) {
         for (const name of ['prebuild', 'flowNodeFromShaderStage', 'flowNode', 'build', 'buildAsync']) {
           const method = builder[name]
-          if (typeof method !== 'function') continue
+          if (typeof method !== 'function')
+            continue
           builder[name] = function (...builderArgs) {
             return withInstanceCapacity(object, () => method.apply(this, builderArgs))
           }
@@ -44,7 +45,8 @@ export function installObjectResourceCleanup(renderer) {
   }
 
   function rememberInstanceAttributes(object, renderObject, record) {
-    if (!object.isInstancedMesh) return
+    if (!object.isInstancedMesh)
+      return
     for (const attribute of renderObject.attributes ?? []) {
       const array = attribute.array
       if (array === object.instanceMatrix.array || array === object.instanceColor?.array) {
@@ -55,7 +57,8 @@ export function installObjectResourceCleanup(renderer) {
 
   function releaseObject(object) {
     const record = records.get(object)
-    if (!record) return
+    if (!record)
+      return
     for (const renderObject of [...record.objects]) {
       rememberInstanceAttributes(object, renderObject, record)
       renderObject.dispose()
@@ -83,7 +86,8 @@ export function installObjectResourceCleanup(renderer) {
     if (!record) {
       record = { objects: new Set(), attributes: new Set(), onDispose: () => releaseObject(object) }
       records.set(object, record)
-      if (object.isInstancedMesh) object.addEventListener('dispose', record.onDispose)
+      if (object.isInstancedMesh)
+        object.addEventListener('dispose', record.onDispose)
     }
     record.objects.add(renderObject)
     const onDispose = renderObject.onDispose
@@ -101,17 +105,19 @@ export function installObjectResourceCleanup(renderer) {
   return {
     releaseGroup(group) {
       group.traverse(releaseObject)
-    }
+    },
   }
 }
 
 export function withInstanceCapacity(object, work) {
-  if (!object.isInstancedMesh) return work()
+  if (!object.isInstancedMesh)
+    return work()
   const count = object.count
   object.count = object.instanceMatrix.count
   try {
     return work()
-  } finally {
+  }
+  finally {
     object.count = count
   }
 }
@@ -130,7 +136,8 @@ export function* buildNodeBuilderSteps(builder) {
     for (const shaderStage of shaderStages) {
       builder.setShaderStage(shaderStage)
       for (const node of builder.flowNodes[shaderStage]) {
-        if (buildStage === 'generate') builder.flowNode(node)
+        if (buildStage === 'generate')
+          builder.flowNode(node)
         else node.build(builder)
         yield
       }
@@ -144,6 +151,7 @@ export function* buildNodeBuilderSteps(builder) {
 }
 
 function yieldBuilder() {
-  if (globalThis.scheduler?.yield) return globalThis.scheduler.yield()
+  if (globalThis.scheduler?.yield)
+    return globalThis.scheduler.yield()
   return new Promise(resolve => setTimeout(resolve, 0))
 }
