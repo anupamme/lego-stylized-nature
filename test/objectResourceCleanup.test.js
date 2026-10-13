@@ -14,6 +14,7 @@ function fixture() {
           attributes,
           disposalCount: 0,
           getNodeBuilderState() { return { matrixCount: object.count } },
+          getAttributes() { return this.attributes },
           onDispose() { renderObject.disposalCount++ },
           dispose() { this.onDispose() }
         }
@@ -88,6 +89,52 @@ test('matrix arrays compile for pool capacity while draw count can grow and shri
     assert.equal(mesh.count, count)
   }
   mesh.dispose()
+})
+
+test('recycled instance matrices upload the hidden pose on the first main and shadow draw', () => {
+  const { renderer } = fixture()
+  const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial(), 2048)
+  const source = mesh.instanceMatrix
+  const derived = new THREE.InstancedInterleavedBuffer(source.array, 16)
+  const attribute = new THREE.InterleavedBufferAttribute(derived, 4, 0)
+  const main = renderer._objects.createRenderObject(mesh, [attribute])
+  const shadow = renderer._objects.createRenderObject(mesh, [attribute])
+  const gpu = source.array.slice()
+  let uploadedVersion = derived.version
+  const draw = renderObject => {
+    // Match Three's geometry-upload-before-node-update ordering.
+    const buffer = renderObject.getAttributes()[0].data
+    if (buffer.version !== uploadedVersion) {
+      if (buffer.updateRanges.length) {
+        for (const { start, count } of buffer.updateRanges) {
+          gpu.set(buffer.array.subarray(start, start + count), start)
+        }
+      }
+      else gpu.set(buffer.array)
+      uploadedVersion = buffer.version
+      buffer.clearUpdateRanges()
+    }
+    return gpu[13]
+  }
+  const hidden = new THREE.Matrix4().makeScale(0, 0, 0).setPosition(0.5, -3, 0.5)
+  mesh.setMatrixAt(0, hidden)
+  source.addUpdateRange(0, 16)
+  source.needsUpdate = true
+  assert.equal(draw(shadow), -3)
+  assert.equal(draw(main), -3)
+  assert.equal(derived.updateRanges.length, 0)
+
+  mesh.setMatrixAt(0, new THREE.Matrix4().makeTranslation(0.5, -1, 0.5))
+  source.needsUpdate = true
+  assert.equal(draw(main), -1)
+  assert.equal(draw(shadow), -1)
+  source.clearUpdateRanges()
+  mesh.setMatrixAt(0, new THREE.Matrix4().makeTranslation(0.5, 6, 0.5))
+  source.needsUpdate = true
+  assert.equal(draw(main), 6)
+  mesh.dispose()
+  mesh.geometry.dispose()
+  mesh.material.dispose()
 })
 
 test('async compile builder stages use capacity and restore live count across yields and errors', async () => {

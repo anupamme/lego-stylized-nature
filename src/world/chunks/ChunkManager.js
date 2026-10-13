@@ -3,6 +3,7 @@ import LavaBrickRenderer from '../bricks/LavaBrickRenderer.js'
 import TerrainBrickRenderer from '../bricks/TerrainBrickRenderer.js'
 import WaterBrickRenderer from '../bricks/WaterBrickRenderer.js'
 import PrefabPlacer from '../prefabs/PrefabPlacer.js'
+import { unpackChunkBuild } from './chunkBuildData.js'
 import {
   getChunkBounds,
   getChunkWindowCoords,
@@ -12,6 +13,7 @@ import {
   getWorldBlockFromPosition,
 } from './chunkCoordinates.js'
 import ChunkRenderSlot from './ChunkRenderSlot.js'
+import { CHUNK_TRANSITION_DEFAULTS } from './ChunkColumnTransition.js'
 
 export default class ChunkManager {
   constructor({
@@ -25,6 +27,7 @@ export default class ChunkManager {
     biomeRegistry = null,
     prefabRegistry = null,
     createSlot = null,
+    buildWorkers = null,
   }) {
     this.config = config
     this.terrainGenerator = terrainGenerator
@@ -36,6 +39,7 @@ export default class ChunkManager {
     this.biomeRegistry = biomeRegistry
     this.prefabRegistry = prefabRegistry
     this.createSlotOverride = createSlot
+    this.buildWorkers = buildWorkers
 
     const chunkConfig = config.chunks ?? {}
     this.chunkSize = chunkConfig.size ?? 64
@@ -47,6 +51,8 @@ export default class ChunkManager {
     this.debugSpacing = chunkConfig.debugSpacing ?? 0
     this.cellSize = config.terrain.cellSize
     this.buildTimings = { generationMs: 0, placementMs: 0, populateMs: 0, totalMs: 0, maxMs: 0, builds: 0 }
+    this.transitionSettings = { ...CHUNK_TRANSITION_DEFAULTS, ...chunkConfig.transition }
+    chunkConfig.transition = this.transitionSettings
 
     const slotCount = (this.windowRadius * 2 + 1) ** 2
     this.slots = Array.from({ length: slotCount }, (_, index) => this.createSlot(index))
@@ -56,9 +62,13 @@ export default class ChunkManager {
     this.pendingKeys = new Set()
     this.pendingPrefabBuildQueue = []
     this.pendingPrefabBuildKeys = new Set()
+    this.inFlightBuilds = new Map()
+    this.completedBuilds = []
+    this.buildEpoch = 0
     this.centerCoord = null
     this.schedulingPosition = null
     this.movementDirection = { x: 0, z: 0 }
+    this.transitionDirection = { x: 0, z: 0 }
     this.bootstrapped = false
 
     for (const slot of this.slots) {
@@ -71,6 +81,7 @@ export default class ChunkManager {
     for (const slot of this.slots) {
       slot.hide()
       slot.setPrefabsVisible?.(false)
+      slot.resetTransition?.()
     }
 
     this.activeSlots.clear()
@@ -78,10 +89,14 @@ export default class ChunkManager {
     this.pendingKeys.clear()
     this.pendingPrefabBuildQueue.length = 0
     this.pendingPrefabBuildKeys.clear()
+    this.inFlightBuilds.clear()
+    this.completedBuilds.length = 0
+    this.buildEpoch++
     this.freeSlots = [...this.slots]
     this.centerCoord = null
     this.schedulingPosition = null
     this.movementDirection = { x: 0, z: 0 }
+    this.transitionDirection = { x: 0, z: 0 }
     this.bootstrapped = false
   }
 
@@ -137,6 +152,7 @@ export default class ChunkManager {
     this.bootstrapped = true
     this.loadCoordNow(centerCoord)
     this.queuePendingCoords(getChunkWindowCoords(centerCoord, this.windowRadius))
+    this.dispatchPendingBuilds()
     this.updateVisibility(worldBlock)
   }
 
@@ -156,12 +172,13 @@ export default class ChunkManager {
     return Math.abs(scaled - rounded) < 1e-9 ? rounded : fallbackBlock
   }
 
-  update(worldX, worldZ, camera = null) {
+  update(worldX, worldZ, camera = null, deltaSeconds = 1 / 60) {
     if (!this.bootstrapped) {
       this.bootstrap(worldX, worldZ, camera)
       return
     }
 
+    this.updateTransitions(deltaSeconds)
     const worldBlock = this.getStableWorldBlockFromPosition(worldX, worldZ)
     const nextCenterCoord = getRenderChunkCoord(worldBlock.x, worldBlock.z, this.chunkSize)
     this.updateSchedulingPosition(worldX, worldZ)
@@ -182,7 +199,40 @@ export default class ChunkManager {
     const distance = Math.hypot(dx, dz)
     this.movementDirection.x = distance > 0 ? dx / distance : 0
     this.movementDirection.z = distance > 0 ? dz / distance : 0
+    if (distance > 1e-9) {
+      this.transitionDirection = { ...this.movementDirection }
+    }
     this.schedulingPosition = { x: worldX, z: worldZ }
+  }
+
+  getTransitionDirection(coord) {
+    if (Math.hypot(this.transitionDirection.x, this.transitionDirection.z) > 0) {
+      return this.transitionDirection
+    }
+    const position = this.schedulingPosition ?? { x: 0, z: 0 }
+    const bounds = getChunkBounds(coord, this.chunkSize, this.cellSize)
+    return {
+      x: (bounds.minX + bounds.maxX) * 0.5 - position.x,
+      z: (bounds.minZ + bounds.maxZ) * 0.5 - position.z,
+    }
+  }
+
+  updateTransitions(deltaSeconds) {
+    for (const slot of this.activeSlots.values()) {
+      if (this.transitionSettings.enabled === false) {
+        slot.resetTransition?.()
+      }
+      else {
+        slot.updateTransition?.(deltaSeconds)
+      }
+    }
+  }
+
+  releaseSlot(slot) {
+    slot.hide()
+    slot.setPrefabsVisible?.(false)
+    slot.discardTransition?.()
+    this.freeSlots.push(slot)
   }
 
   getBuildPriority(coord) {
@@ -202,6 +252,11 @@ export default class ChunkManager {
   }
 
   compareBuildCoords(a, b) {
+    const aIsCenter = this.coordsEqual(a, this.centerCoord)
+    const bIsCenter = this.coordsEqual(b, this.centerCoord)
+    if (aIsCenter !== bIsCenter) {
+      return aIsCenter ? -1 : 1
+    }
     const aPriority = this.getBuildPriority(a)
     const bPriority = this.getBuildPriority(b)
     const distanceDifference = aPriority.distanceSquared - bPriority.distanceSquared
@@ -230,11 +285,9 @@ export default class ChunkManager {
         continue
       }
 
-      slot.hide()
-      slot.setPrefabsVisible?.(false)
       this.removePendingPrefabBuild(key)
       this.activeSlots.delete(key)
-      this.freeSlots.push(slot)
+      this.releaseSlot(slot)
     }
 
     this.pendingQueue = this.pendingQueue.filter((coord) => {
@@ -245,9 +298,8 @@ export default class ChunkManager {
 
     const centerKey = getRenderChunkKey(nextCenterCoord)
     let immediateBuilds = 0
-    if (!this.activeSlots.has(centerKey)) {
-      this.loadCoordNow(nextCenterCoord)
-      immediateBuilds = 1
+    if (!this.activeSlots.has(centerKey) && !this.inFlightBuilds.has(centerKey)) {
+      immediateBuilds = this.loadCoordNow(nextCenterCoord) ? 1 : 0
     }
 
     this.queuePendingCoords(requiredCoords)
@@ -257,7 +309,7 @@ export default class ChunkManager {
   queuePendingCoords(coords) {
     for (const coord of coords) {
       const key = getRenderChunkKey(coord)
-      if (this.activeSlots.has(key) || this.pendingKeys.has(key)) {
+      if (this.activeSlots.has(key) || this.pendingKeys.has(key) || this.inFlightBuilds.has(key)) {
         continue
       }
 
@@ -286,18 +338,92 @@ export default class ChunkManager {
   }
 
   buildPendingChunks(limit = this.maxPendingBuildsPerFrame) {
+    if (this.buildWorkers) {
+      const applied = this.applyCompletedBuilds(limit)
+      this.dispatchPendingBuilds()
+      return applied
+    }
+
     this.pendingQueue.sort((a, b) => this.compareBuildCoords(a, b))
     let built = 0
 
     while (built < limit && this.pendingQueue.length > 0) {
-      const coord = this.pendingQueue.shift()
-      this.pendingKeys.delete(getRenderChunkKey(coord))
-      if (this.loadCoordNow(coord)) {
-        built++
-      }
+      this.loadCoordNow(this.pendingQueue[0])
+      built++
     }
 
     return built
+  }
+
+  dispatchPendingBuilds() {
+    if (!this.buildWorkers?.hasIdleWorker() || this.pendingQueue.length === 0) {
+      return
+    }
+
+    this.pendingQueue.sort((a, b) => this.compareBuildCoords(a, b))
+    const epoch = this.buildEpoch
+    const config = {
+      seed: this.config.seed,
+      terrain: this.config.terrain,
+      biomes: this.config.biomes,
+    }
+
+    while (this.buildWorkers.hasIdleWorker() && this.pendingQueue.length > 0) {
+      const coord = this.pendingQueue.shift()
+      const key = getRenderChunkKey(coord)
+      this.pendingKeys.delete(key)
+      this.inFlightBuilds.set(key, coord)
+      this.buildWorkers.run({
+        epoch,
+        config,
+        origin: getRenderChunkOrigin(coord, this.chunkSize),
+        size: this.chunkSize,
+        halo: this.halo,
+      }, (packed, error) => {
+        if (epoch !== this.buildEpoch || !this.inFlightBuilds.has(key)) {
+          return
+        }
+        if (error) {
+          this.disableBuildWorkers(error)
+          return
+        }
+        this.completedBuilds.push({ coord, packed })
+      })
+    }
+  }
+
+  applyCompletedBuilds(limit) {
+    this.completedBuilds.sort((a, b) => this.compareBuildCoords(a.coord, b.coord))
+    let applied = 0
+
+    while (applied < limit && this.completedBuilds.length > 0) {
+      const { coord, packed } = this.completedBuilds.shift()
+      const key = getRenderChunkKey(coord)
+      this.inFlightBuilds.delete(key)
+      if (!this.isInWindow(coord) || this.activeSlots.has(key)) {
+        continue
+      }
+      this.loadCoordNow(coord, packed)
+      applied++
+    }
+
+    return applied
+  }
+
+  disableBuildWorkers(error) {
+    console.error('[ChunkManager] Chunk build worker failed; building chunks on the main thread.', error)
+    this.buildWorkers?.terminate()
+    this.buildWorkers = null
+    this.completedBuilds.length = 0
+    const coords = [...this.inFlightBuilds.values()].filter(coord => this.isInWindow(coord))
+    this.inFlightBuilds.clear()
+    this.queuePendingCoords(coords)
+  }
+
+  isInWindow(coord) {
+    return this.centerCoord !== null
+      && Math.abs(coord.x - this.centerCoord.x) <= this.windowRadius
+      && Math.abs(coord.z - this.centerCoord.z) <= this.windowRadius
   }
 
   buildPendingPrefabs(desiredPrefabKeys) {
@@ -333,12 +459,11 @@ export default class ChunkManager {
     }
   }
 
-  loadCoordNow(coord) {
-    this.removePendingCoord(coord)
-
+  loadCoordNow(coord, packedBuild = null) {
     const key = getRenderChunkKey(coord)
     const activeSlot = this.activeSlots.get(key)
     if (activeSlot) {
+      this.removePendingCoord(coord)
       return activeSlot
     }
 
@@ -347,40 +472,74 @@ export default class ChunkManager {
       throw new Error(`[ChunkManager] No free slot available for chunk ${key}`)
     }
 
-    this.fillSlot(slot, coord)
+    this.fillSlot(slot, coord, packedBuild)
+    if (this.transitionSettings.enabled !== false) {
+      slot.startLoading?.(this.getTransitionDirection(coord), this.transitionSettings)
+    }
     this.activeSlots.set(key, slot)
+    this.removePendingCoord(coord)
     return slot
   }
 
-  fillSlot(slot, coord) {
+  /**
+   * With a worker-built `packedBuild`, only unpacking and instance upload run here;
+   * `totalMs`/`maxMs` are main-thread time, generation/placement/workerAo timings come from the worker.
+   */
+  fillSlot(slot, coord, packedBuild = null) {
     const started = performance.now()
-    const origin = getRenderChunkOrigin(coord, this.chunkSize)
-    const terrainMap = this.terrainGenerator.generateChunk({
-      origin,
-      size: this.chunkSize,
-      halo: this.halo,
-    })
-    const generated = performance.now()
-    const placements = this.layeredTerrainBuilder.buildPlacements(terrainMap)
-    const placed = performance.now()
+    let build
+    let unpackMs = 0
+    if (packedBuild) {
+      build = unpackChunkBuild(packedBuild)
+      unpackMs = performance.now() - started
+    }
+    else {
+      build = this.buildChunkOnMainThread(coord)
+    }
+    const prepared = performance.now()
 
     slot.populate({
       coord,
-      terrainMap,
-      placements,
+      terrainMap: build.terrainMap,
+      placements: build.placements,
+      aoValues: build.aoValues,
       colorResolver: this.brickColorResolver,
       debugSpacing: this.debugSpacing,
     })
     const finished = performance.now()
     Object.assign(this.buildTimings, {
-      generationMs: generated - started,
-      placementMs: placed - generated,
-      populateMs: finished - placed,
+      generationMs: build.timings?.generationMs ?? 0,
+      placementMs: build.timings?.placementMs ?? 0,
+      unpackMs,
+      populateMs: finished - prepared,
       ...slot.buildTimings,
+      workerAoMs: build.timings?.aoMs ?? 0,
+      inWorker: Boolean(packedBuild),
       totalMs: finished - started,
       maxMs: Math.max(this.buildTimings.maxMs, finished - started),
       builds: this.buildTimings.builds + 1,
     })
+  }
+
+  buildChunkOnMainThread(coord) {
+    const started = performance.now()
+    const terrainMap = this.terrainGenerator.generateChunk({
+      origin: getRenderChunkOrigin(coord, this.chunkSize),
+      size: this.chunkSize,
+      halo: this.halo,
+    })
+    const generated = performance.now()
+    const placements = this.layeredTerrainBuilder.buildPlacements(terrainMap)
+
+    return {
+      terrainMap,
+      placements,
+      aoValues: null,
+      timings: {
+        generationMs: generated - started,
+        placementMs: performance.now() - generated,
+      },
+    }
   }
 
   setDebugSpacing(spacing) {
@@ -455,6 +614,10 @@ export default class ChunkManager {
   }
 
   dispose() {
+    this.buildWorkers?.terminate()
+    this.buildWorkers = null
+    this.inFlightBuilds.clear()
+    this.completedBuilds.length = 0
     for (const slot of this.slots) {
       slot.dispose()
       slot.group.parent?.remove(slot.group)

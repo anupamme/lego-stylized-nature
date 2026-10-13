@@ -81,6 +81,29 @@ export function installObjectResourceCleanup(renderer) {
       renderObject.getNodeBuilderState = function (...builderArgs) {
         return withInstanceCapacity(object, () => getNodeBuilderState.apply(this, builderArgs))
       }
+      // r185 uploads geometry before running Instance.js's OnFrameUpdate.
+      // Synchronize its derived attributes before that upload, otherwise a
+      // recycled slot draws last frame's matrices at its new world position.
+      const getAttributes = renderObject.getAttributes
+      if (getAttributes) {
+        renderObject.getAttributes = function (...attributeArgs) {
+          const result = getAttributes.apply(this, attributeArgs)
+          for (const attribute of result) {
+            const buffer = attribute.isInterleavedBufferAttribute ? attribute.data : attribute
+            const source = buffer.array === object.instanceMatrix.array
+              ? object.instanceMatrix
+              : buffer.array === object.instanceColor?.array ? object.instanceColor : null
+            if (!source || buffer === source || buffer.version === source.version)
+              continue
+            buffer.clearUpdateRanges()
+            for (const range of source.updateRanges) {
+              buffer.addUpdateRange(range.start, range.count)
+            }
+            buffer.version = source.version
+          }
+          return result
+        }
+      }
     }
     let record = records.get(object)
     if (!record) {

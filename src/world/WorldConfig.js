@@ -1,6 +1,7 @@
 import { SPEED_LINES_DEFAULTS } from '../renderer/postprocessing/speedLinesConfig.js'
 import { TILT_SHIFT_DEFAULTS } from '../renderer/postprocessing/tiltShiftConfig.js'
 import { createTerrainColorSettings } from './bricks/terrainColorScheme.js'
+import { CHUNK_TRANSITION_DEFAULTS } from './chunks/ChunkColumnTransition.js'
 
 export const worldConfig = {
   seed: 20260608,
@@ -39,10 +40,10 @@ export const worldConfig = {
     },
   },
   biomes: {
-    cellSize: 192,
+    cellSize: 384,
     jitter: 0.6,
-    blendWidth: 24,
-    warp: { amplitude: 40, scale: 160 },
+    blendWidth: 48,
+    warp: { amplitude: 80, scale: 320 },
     originBiome: 'autumnForest',
     table: [
       { id: 'forest', weight: 4 },
@@ -74,6 +75,10 @@ export const worldConfig = {
     windowRadius: 1,
     maxPendingBuildsPerFrame: 1,
     maxPrefabBuildsPerFrame: 1,
+    /** Web Workers that generate terrain, placements and AO off the main thread; 0 builds on the main thread. */
+    buildWorkers: 2,
+    /** Seconds per column / across the chunk; riseDistance is in world units. */
+    transition: { ...CHUNK_TRANSITION_DEFAULTS },
     visibilityPadding: 1,
     /** World-unit gap between adjacent chunks. */
     debugSpacing: 0,

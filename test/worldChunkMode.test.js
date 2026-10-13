@@ -125,3 +125,23 @@ for (const chunkMode of [true, false]) {
     sourceGeometry.dispose()
   })
 }
+
+test('World forwards frame delta to chunk animation and advances it even when the player is disabled', () => {
+  const experience = createExperience()
+  experience.time = { getDelta: () => 0.025 }
+  const world = new World(experience)
+  const updates = []
+  const transitionUpdates = []
+  world.playerAircraft = { enabled: true, state: { position: { x: 1, z: 2 } } }
+  world.terrainChunkManager = {
+    update(...args) { updates.push(args) },
+    updateTransitions(delta) { transitionUpdates.push(delta) },
+  }
+  world.update()
+  assert.deepEqual(updates, [[1, 2, experience.worldCamera.instance, 0.025]])
+
+  world.playerAircraft.enabled = false
+  world.update()
+  assert.deepEqual(transitionUpdates, [0.025])
+  assert.equal(updates.length, 1)
+})

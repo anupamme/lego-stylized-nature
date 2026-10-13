@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import * as THREE from 'three/webgpu'
 import ChunkManager from '../src/world/chunks/ChunkManager.js'
+import ChunkColumnTransition from '../src/world/chunks/ChunkColumnTransition.js'
 
 const config = {
   seed: 1,
@@ -25,6 +26,7 @@ const config = {
     halo: 1,
     windowRadius: 1,
     maxPendingBuildsPerFrame: 1,
+    transition: { enabled: false },
     visibilityPadding: 0
   }
 }
@@ -54,6 +56,21 @@ function createSlotFactory(calls = []) {
       },
       hide() {
         this.group.visible = false
+      },
+      startLoading(direction, settings) {
+        this.columnTransition ??= new ChunkColumnTransition({ chunkSize: 32, cellSize: 0.2 })
+        this.columnTransition.start(1, direction, settings)
+      },
+      discardTransition() {
+        this.columnTransition?.discard()
+        this.columnTransition = null
+      },
+      updateTransition(deltaSeconds) {
+        return this.columnTransition?.update(deltaSeconds) ?? true
+      },
+      resetTransition() {
+        this.columnTransition?.reset()
+        this.columnTransition = null
       },
       setOverlaysVisible(visible) {
         this.overlaysVisible = visible
@@ -109,6 +126,7 @@ function assertManagerInvariants(manager) {
 
   assert.equal(activeSlots.size, manager.activeSlots.size)
   assert.equal(freeSlots.size, manager.freeSlots.length)
+  assert.equal(activeSlots.size + freeSlots.size, manager.slots.length)
 
   for (const slot of activeSlots) {
     assert.equal(freeSlots.has(slot), false)
@@ -546,4 +564,104 @@ test('ao preview updates all slots and only shows overlays on visible slots', ()
 
   assert.ok(manager.slots.every((slot) => slot.instanceColorsUpdated))
   assert.ok(manager.slots.every((slot) => slot.overlaysVisible === false))
+})
+
+test('outgoing chunks are immediately hidden and recycled while incoming chunks animate', () => {
+  const manager = createManager({ overrides: { transition: { enabled: true } } })
+  manager.bootstrap(6.4, 6.4)
+  settleChunkAndPrefabQueues(manager, 6.4, 6.4)
+  manager.updateTransitions(2)
+
+  const outgoing = [...manager.activeSlots.values()].filter(slot => slot.coord.x === 0)
+  manager.maxPendingBuildsPerFrame = 0
+  manager.update(12.8, 6.4, null, 0)
+  assert.equal(outgoing.length, 3)
+  assert.ok(outgoing.every(slot => !slot.group.visible && !slot.prefabsVisible && !slot.columnTransition))
+  assert.ok(outgoing.every(slot => manager.freeSlots.includes(slot)))
+  assert.equal(manager.slots.length, 9)
+  assertManagerInvariants(manager)
+
+  manager.maxPendingBuildsPerFrame = 1
+  manager.update(12.8, 6.4, null, 0)
+  assert.equal(manager.slots.length, 9)
+  assert.ok([...manager.activeSlots.values()].some(slot => slot.coord.x === 3 && slot.columnTransition.active))
+  assertManagerInvariants(manager)
+})
+
+test('turning back rebuilds unloaded chunks and retains overlapping slots', () => {
+  const calls = []
+  const manager = createManager({ calls, overrides: { transition: { enabled: true } } })
+  manager.bootstrap(6.4, 6.4)
+  settleChunkAndPrefabQueues(manager, 6.4, 6.4)
+  manager.updateTransitions(2)
+  const overlap = manager.activeSlots.get('1:1')
+
+  manager.update(12.8, 6.4, null, 0)
+  manager.updateTransitions(0.2)
+  const builds = calls.length
+  manager.update(6.4, 6.4, null, 0)
+
+  assert.equal(manager.activeSlots.get('1:1'), overlap)
+  settleChunkAndPrefabQueues(manager, 6.4, 6.4)
+  assert.equal(calls.length, builds + 3)
+  assert.equal(manager.slots.length, 9)
+  assertManagerInvariants(manager)
+})
+
+test('rapid teleports reuse the fixed pool without waiting for unloading', () => {
+  const calls = []
+  const manager = createManager({
+    calls,
+    overrides: { maxPendingBuildsPerFrame: 8, transition: { enabled: true } },
+  })
+  manager.bootstrap(6.4, 6.4)
+  settleChunkAndPrefabQueues(manager, 6.4, 6.4)
+  manager.updateTransitions(2)
+
+  for (const [position, delta] of [[64, 0], [128, 0.3], [192, 0.05]]) {
+    manager.update(position, position, null, delta)
+    assert.equal(manager.slots.length, 9)
+    assertManagerInvariants(manager)
+  }
+  assert.equal(manager.slots.length, 9)
+  assert.equal(manager.activeSlots.size, 8)
+  assert.equal(manager.pendingQueue.length, 1)
+  assert.equal(calls.length, 33)
+
+  manager.update(192, 192, null, 2)
+  assert.equal(manager.activeSlots.size, 9)
+  assert.equal(manager.pendingQueue.length, 0)
+  assert.ok(manager.activeSlots.has('30:30'))
+  assert.ok([...manager.activeSlots.keys()].every(key => /^(29|30|31):(29|30|31)$/.test(key)))
+  assertManagerInvariants(manager)
+})
+
+test('bootstrap and disposal clear loaded animation state', () => {
+  const manager = createManager({ overrides: { transition: { enabled: true } } })
+  manager.bootstrap(6.4, 6.4)
+  settleChunkAndPrefabQueues(manager, 6.4, 6.4)
+  manager.update(12.8, 6.4, null, 0)
+  assert.equal(manager.freeSlots.length, 2)
+
+  manager.bootstrap(-6.4, -6.4)
+  assert.equal(manager.activeSlots.size, 1)
+  assert.ok(manager.freeSlots.every(slot => !slot.group.visible && !slot.columnTransition))
+  assertManagerInvariants(manager)
+
+  const slots = [...manager.slots]
+  manager.dispose()
+  assert.equal(manager.slots.length, 0)
+  assert.ok(slots.every(slot => slot.disposed && !slot.group.parent))
+})
+
+test('disabling transitions settles active loading slots', () => {
+  const manager = createManager({ overrides: { transition: { enabled: true } } })
+  manager.bootstrap(6.4, 6.4)
+  settleChunkAndPrefabQueues(manager, 6.4, 6.4)
+  manager.update(12.8, 6.4, null, 0)
+  assert.equal(manager.freeSlots.length, 2)
+  manager.transitionSettings.enabled = false
+  manager.updateTransitions(0)
+  assert.ok([...manager.activeSlots.values()].every(slot => !slot.columnTransition))
+  assertManagerInvariants(manager)
 })

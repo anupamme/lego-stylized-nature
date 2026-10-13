@@ -1,4 +1,4 @@
-const VOLCANO_FILL_BIOME_CELL = Object.freeze({
+export const VOLCANO_FILL_BIOME_CELL = Object.freeze({
   biomeId: 'volcano',
   weights: Object.freeze({ volcano: 1 }),
 })

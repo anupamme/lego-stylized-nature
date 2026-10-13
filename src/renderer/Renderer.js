@@ -1,4 +1,3 @@
-import { smaa } from 'three/addons/tsl/display/SMAANode.js'
 import {
   float,
   Fn,
@@ -154,9 +153,7 @@ export default class Renderer {
   createFinalOutput(sceneColor) {
     const color = renderOutput(sceneColor, this.instance.toneMapping, THREE.LinearSRGBColorSpace)
     const vignetted = vec4(color.rgb.mul(applyVignette()), color.a)
-    const aa = smaa(vignetted)
-    this.pipelineNodes.push(aa.textureNode, aa)
-    return renderOutput(aa, THREE.NoToneMapping, THREE.SRGBColorSpace)
+    return renderOutput(vignetted, THREE.NoToneMapping, THREE.SRGBColorSpace)
   }
 
   setTiltShiftEnabled(enabled) {

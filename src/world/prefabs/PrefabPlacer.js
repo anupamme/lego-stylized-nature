@@ -336,7 +336,14 @@ export default class PrefabPlacer {
       ? matchesInstanceColorMesh(child.name, instanceColors.meshNameSuffix)
       : false
 
+    const anchorCount = transforms.length * 2
+    if (!mesh.userData.chunkColumnPositions || mesh.userData.chunkColumnPositions.length < anchorCount) {
+      mesh.userData.chunkColumnPositions = new Float32Array(anchorCount)
+    }
+
     transforms.forEach((t, i) => {
+      mesh.userData.chunkColumnPositions[i * 2] = t.position[0]
+      mesh.userData.chunkColumnPositions[i * 2 + 1] = t.position[2]
       this._position.fromArray(t.position)
       this._quaternion.setFromAxisAngle(this._yAxis, t.rotationY)
       this._instanceMatrix.compose(this._position, this._quaternion, this._unitScale)

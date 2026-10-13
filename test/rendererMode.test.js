@@ -63,7 +63,7 @@ test('renderer disposal cancels preparation before backend resources are release
   assert.deepEqual(calls, ['cancel', 'pipeline', 'backend'])
 })
 
-test('reattaching and disposing the pipeline releases ScenePass, blur and both SMAA targets', () => {
+test('reattaching and disposing the pipeline releases ScenePass and blur without SMAA', () => {
   const previousImage = globalThis.Image
   globalThis.Image = class Image {}
   const renderer = Object.create(Renderer.prototype)
@@ -84,11 +84,16 @@ test('reattaching and disposing the pipeline releases ScenePass, blur and both S
     assert.equal(new Set(conversions).size, 2)
     assert.ok(conversions.some((node) => node.outputColorSpace === THREE.LinearSRGBColorSpace
       && node.getToneMapping() === THREE.ACESFilmicToneMapping))
-    const aa = renderer.pipelineNodes.find(node => node._renderTargetEdges)
-    let vignette = aa.textureNode.node
-    while (vignette.isVarNode) vignette = vignette.node
+    assert.equal(
+      renderer.pipelineNodes.some(node => node._renderTargetEdges),
+      false,
+    )
+    let vignette = null
+    output.traverse((node) => {
+      if (node.constructor.type === 'JoinNode' && node.nodes?.[1]?.components === 'w')
+        vignette = node
+    })
     assert.equal(vignette.constructor.type, 'JoinNode')
-    assert.equal(vignette.nodes[1].components, 'w')
     assert.equal(vignette.nodes[1].node.outputColorSpace, THREE.LinearSRGBColorSpace)
 
     const disposals = []
@@ -101,8 +106,8 @@ test('reattaching and disposing the pipeline releases ScenePass, blur and both S
     renderer.attachPipeline(new THREE.Scene(), new THREE.PerspectiveCamera())
     renderer.dispose()
     renderer.dispose()
-    assert.equal(disposals.length, 6)
-    assert.equal(new Set(disposals).size, 6)
+    assert.equal(disposals.length, 2)
+    assert.equal(new Set(disposals).size, 2)
     assert.deepEqual(renderer.pipelineNodes, [])
   } finally {
     if (previousImage === undefined) delete globalThis.Image

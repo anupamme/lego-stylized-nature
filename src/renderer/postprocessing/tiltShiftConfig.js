@@ -1,5 +1,5 @@
 export const TILT_SHIFT_DEFAULTS = Object.freeze({
-  enabled: true,
+  enabled: false,
   focusCenter: 0.61,
   focusWidth: 0.33,
   falloff: 0.50,

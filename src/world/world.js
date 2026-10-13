@@ -16,6 +16,7 @@ import LavaBrickRenderer from './bricks/LavaBrickRenderer.js'
 import TerrainBrickRenderer from './bricks/TerrainBrickRenderer.js'
 import { isTerrainPreview } from './bricks/terrainColorScheme.js'
 import WaterBrickRenderer from './bricks/WaterBrickRenderer.js'
+import ChunkBuildWorkerPool from './chunks/ChunkBuildWorkerPool.js'
 import ChunkManager from './chunks/ChunkManager.js'
 import PlayerAircraft from './player/PlayerAircraft.js'
 import { warmupPrefabPipelines } from './prefabs/PrefabPipelineWarmup.js'
@@ -123,6 +124,7 @@ export default class World {
           biomeRegistry: this.biomeRegistry,
           prefabRegistry,
           materials: this.materials,
+          buildWorkers: ChunkBuildWorkerPool.create(this.config.chunks),
         })
       }
       else {
@@ -317,7 +319,15 @@ export default class World {
         this.playerAircraft.state.position,
         { halfExtent: chunkWorldSize, envelope: this.getPrefabShadowEnvelope() },
       )
-      this.terrainChunkManager.update(x, z, this.experience.worldCamera.instance)
+      this.terrainChunkManager.update(
+        x,
+        z,
+        this.experience.worldCamera.instance,
+        this.experience.time.getDelta(),
+      )
+    }
+    else if (this.terrainChunkManager) {
+      this.terrainChunkManager.updateTransitions(this.experience.time.getDelta())
     }
   }
 

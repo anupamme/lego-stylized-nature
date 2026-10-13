@@ -130,6 +130,8 @@ document.querySelector('#run').addEventListener('click', async () => {
       post.world.playerAircraft.input.dispose()
       await frames(post)
       assert(post.renderer.renderPipeline.needsUpdate === false, 'Pipeline did not render')
+      post.renderer.setTiltShiftEnabled(true)
+      post.renderer.render()
       post.renderer.setTiltShiftEnabled(false)
       assert(post.renderer.renderPipeline.needsUpdate === true, 'Toggle did not invalidate pipeline')
       post.renderer.render()

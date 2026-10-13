@@ -1,4 +1,5 @@
 import * as THREE from 'three/webgpu'
+import ChunkColumnTransition from './ChunkColumnTransition.js'
 import {
   getRenderChunkKey,
   getRenderChunkOrigin,
@@ -31,6 +32,7 @@ export default class ChunkRenderSlot {
     this.prefabsBuiltForKey = null
     this.prefabsVisible = false
     this.prefabBuildMs = 0
+    this.columnTransition = null
     this.buildTimings = { aoMs: 0, instancesMs: 0 }
     this.group = new THREE.Group()
     this.group.name = `ChunkRenderSlot:${index}`
@@ -63,6 +65,40 @@ export default class ChunkRenderSlot {
     this.group.visible = false
   }
 
+  startLoading(direction, settings) {
+    this.startColumnTransition(1, direction, settings, false)
+    this.show()
+  }
+
+  startColumnTransition(target, direction, settings, initiallyVisible) {
+    this.columnTransition ??= new ChunkColumnTransition({
+      chunkSize: this.chunkSize,
+      cellSize: this.cellSize,
+      initiallyVisible,
+    })
+    this.columnTransition.start(target, direction, settings)
+    this.columnTransition.capture(this.terrainRenderer.group)
+    this.columnTransition.capture(this.waterRenderer?.group)
+    this.columnTransition.capture(this.lavaRenderer?.group)
+    if (this.prefabsBuiltForKey === this.key) {
+      this.columnTransition.capture(this.prefabPlacer?.group)
+    }
+  }
+
+  updateTransition(deltaSeconds) {
+    return this.columnTransition?.update(deltaSeconds) ?? true
+  }
+
+  resetTransition() {
+    this.columnTransition?.reset()
+    this.columnTransition = null
+  }
+
+  discardTransition() {
+    this.columnTransition?.discard()
+    this.columnTransition = null
+  }
+
   setOverlaysVisible(visible) {
     visible = visible && this.terrainRenderer.isPreview?.() !== true
     if (this.waterRenderer?.group) {
@@ -82,9 +118,11 @@ export default class ChunkRenderSlot {
     coord,
     terrainMap,
     placements,
+    aoValues = null,
     colorResolver,
     debugSpacing = 0,
   }) {
+    this.resetTransition()
     this.coord = { ...coord }
     this.origin = getRenderChunkOrigin(coord, this.chunkSize)
     this.terrainMap = terrainMap
@@ -97,7 +135,12 @@ export default class ChunkRenderSlot {
     this.updateWorldPosition(debugSpacing)
 
     const started = performance.now()
-    this.heightfieldAO.build(terrainMap, placements)
+    if (aoValues) {
+      this.heightfieldAO.setValues(aoValues)
+    }
+    else {
+      this.heightfieldAO.build(terrainMap, placements)
+    }
     const aoBuilt = performance.now()
     this.terrainRenderer.build(placements, colorResolver, this.heightfieldAO, this.origin)
     this.waterRenderer?.build(terrainMap)
@@ -120,6 +163,9 @@ export default class ChunkRenderSlot {
     this.prefabPlacer.build(this.terrainMap)
     this.prefabBuildMs = performance.now() - started
     this.prefabsBuiltForKey = this.key
+    if (this.columnTransition?.active) {
+      this.columnTransition.capture(this.prefabPlacer.group)
+    }
   }
 
   setPrefabsVisible(visible) {
@@ -150,6 +196,7 @@ export default class ChunkRenderSlot {
   }
 
   dispose() {
+    this.resetTransition()
     this.prefabPlacer?.dispose()
     this.waterRenderer?.dispose()
     this.lavaRenderer?.dispose()

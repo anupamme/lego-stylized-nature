@@ -112,6 +112,20 @@ export default class HeightfieldAO {
   }
 
   /**
+   * Adopts values computed by build() elsewhere, e.g. in a chunk build worker.
+   * @param {Float32Array} values one visibility value per placement
+   */
+  setValues(values) {
+    this._values = values
+    this._count = values.length
+    return this
+  }
+
+  getValues() {
+    return this._values.subarray(0, this._count)
+  }
+
+  /**
    * @param {number} index placement index passed to build()
    */
   get(index) {
