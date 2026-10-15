@@ -101,3 +101,43 @@ test('collectTransforms writes chunk-local positions inside each slot', () => {
   assert.equal(buckets[0].transforms[0].x, 64)
   assert.equal(buckets[0].transforms[0].z, 64)
 })
+
+test('biome-weighted tree variants match across overlapping chunks', () => {
+  const manifest = {
+    tree: {
+      category: 'tree',
+      placement: { surface: 'land' },
+      variants: [{ source: 'treeModel', weight: 1 }, { source: 'fruitTreeModel', weight: 1 }],
+      randomRotation: false,
+    },
+  }
+  const biomes = {
+    forest: {
+      trees: { variantWeights: { treeModel: 3, fruitTreeModel: 1 } },
+      prefabs: [{ id: 'tree', density: 1 }],
+    },
+  }
+  const placer = createPlacer({ manifest, biomes })
+  const collect = origin => {
+    const buckets = placer.collectTransforms(createChunkTerrainMap({ origin, visibleSize: 8, halo: 1 }))
+    const selections = new Map()
+    for (const { variantIndex, transforms } of buckets.values()) {
+      for (const transform of transforms) {
+        selections.set(`${transform.x},${transform.z}`, variantIndex)
+      }
+    }
+    return selections
+  }
+  try {
+    const first = collect({ x: -8, z: -8 })
+    const second = collect({ x: -4, z: -8 })
+    for (let z = -8; z < 0; z++) {
+      for (let x = -4; x < 0; x++) {
+        assert.equal(first.get(`${x},${z}`), second.get(`${x},${z}`))
+      }
+    }
+  } finally {
+    placer.dispose()
+    placer.materials.dispose()
+  }
+})

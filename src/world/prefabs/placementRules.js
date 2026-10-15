@@ -27,8 +27,18 @@ export function canPlacePrefab(rule, manifestEntry, biomeCell, surfaceCell) {
   return true
 }
 
-export function pickVariantIndex(manifestEntry, x, z, seed) {
-  const entries = manifestEntry.variants.map((variant, index) => ({ value: index, weight: variant.weight }))
+export function createVariantEntries(manifestEntry, variantWeights = null) {
+  return manifestEntry.variants
+    .map((variant, index) => ({
+      value: index,
+      weight: variantWeights
+        ? variantWeights[variant.source] ?? 0
+        : variant.weight ?? 1,
+    }))
+    .filter(({ weight }) => Number.isFinite(weight) && weight > 0)
+}
+
+export function pickVariantIndex(manifestEntry, x, z, seed, entries = createVariantEntries(manifestEntry)) {
   return pickWeighted(entries, random01(x, z, seed + 131))
 }
 

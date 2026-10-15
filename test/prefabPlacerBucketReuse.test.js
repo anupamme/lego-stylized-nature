@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import * as THREE from 'three/webgpu'
 import PrefabPlacer from '../src/world/prefabs/PrefabPlacer.js'
 import WorldMaterials from '../src/world/WorldMaterials.js'
+import { resolveTreeInstanceColor } from '../src/world/prefabs/treeMaterial.js'
 
 function createVariantScene() {
   const scene = new THREE.Group()
@@ -239,6 +240,46 @@ test('build clamps instance count to configured prefab capacity', () => {
   assert.equal(mesh.count, 2)
   assert.equal(warnings.length, 1)
   assert.match(warnings[0], /testGrass/)
+})
+
+test('tree pools clamp every source mesh without slicing transforms or sharing mutable colors', () => {
+  const biome = { trees: { leafColor: '#228833', trunkColor: '#775533' }, prefabs: [] }
+  const placer = createPlacer({ manifest: {}, biomes: { forest: biome }, prefabCapacity: { tree: 2 } })
+  const sourceScene = new THREE.Group()
+  const geometry = new THREE.BoxGeometry()
+  const material = new THREE.MeshBasicMaterial()
+  for (const name of ['root', 'leaf']) {
+    const mesh = new THREE.Mesh(geometry, material)
+    mesh.name = name
+    sourceScene.add(mesh)
+  }
+  const transforms = Array.from({ length: 3 }, (_, i) => ({
+    position: [i + 0.5, 5, 0.5], rotationY: 0, x: i, y: 4, z: 0,
+  }))
+  transforms.slice = () => assert.fail('transform arrays must not be copied per source mesh')
+  const originalWarn = console.warn
+  console.warn = () => {}
+  try {
+    placer.fillTransformBucket('tree:0:forest', sourceScene, transforms, { category: 'tree' }, null, 'tree', 'forest')
+    const meshes = collectInstancedMeshes(placer.group)
+    assert.equal(meshes.length, 2)
+    meshes.forEach((mesh, index) => {
+      assert.equal(mesh.count, 2)
+      assert.deepEqual([...mesh.userData.chunkColumnPositions], [0.5, 0.5, 1.5, 0.5])
+      for (let i = 0; i < mesh.count; i++) {
+        const actual = new THREE.Color()
+        mesh.getColorAt(i, actual)
+        const expected = resolveTreeInstanceColor(sourceScene.children[index], biome, i, 4, 0, 1)
+        assert.equal(actual.getHexString(), expected.getHexString())
+      }
+    })
+  } finally {
+    console.warn = originalWarn
+    placer.dispose()
+    placer.materials.dispose()
+    geometry.dispose()
+    material.dispose()
+  }
 })
 
 test('reused prefab bounds cover expanded placements and refresh an existing box', () => {

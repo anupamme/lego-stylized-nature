@@ -8,3 +8,4 @@ dist
 !/test/chunkColumnTransition.test.js
 !/test/prefabReveal.test.js
 !/test/prefabRenderPreparation.test.js
+!/test/treeMaterial.test.js

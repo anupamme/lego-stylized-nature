@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { placementRandom01 } from '../../utils/random.js'
 import { getTerrainIterationBounds } from '../terrain/terrainMapBounds.js'
-import { canPlacePrefab, makePrefabTransform, pickVariantIndex } from './placementRules.js'
+import { canPlacePrefab, createVariantEntries, makePrefabTransform, pickVariantIndex } from './placementRules.js'
 import { getPrefabCapacity } from './prefabCapacity.js'
 import {
   matchesInstanceColorMesh,
@@ -30,6 +30,7 @@ export default class PrefabPlacer {
     this._quaternion = new THREE.Quaternion()
     this._unitScale = new THREE.Vector3(1, 1, 1)
     this._yAxis = new THREE.Vector3(0, 1, 0)
+    this._color = new THREE.Color()
   }
 
   build(terrainMap) {
@@ -63,8 +64,26 @@ export default class PrefabPlacer {
     return this.group
   }
 
+  preparePlacementRules(biome) {
+    const rules = []
+    for (const rule of biome.prefabs) {
+      const prefab = this.prefabRegistry.get(rule.id)
+      if (!prefab) {
+        continue
+      }
+      const variantWeights = prefab.entry.category === 'tree' ? biome.trees?.variantWeights : null
+      const variantEntries = createVariantEntries(prefab.entry, variantWeights)
+      if (variantEntries.length > 0) {
+        rules.push({ rule, prefab, variantEntries })
+      }
+    }
+    return rules
+  }
+
   collectTransforms(terrainMap) {
     const buckets = new Map()
+    // Rebuild this cache per collection so edited rules and weights take effect.
+    const biomeRules = new Map()
     const seed = this.config.seed
     const bounds = getTerrainIterationBounds(terrainMap, this.config)
 
@@ -75,15 +94,14 @@ export default class PrefabPlacer {
         const worldX = bounds.origin.x + localX
         const worldZ = bounds.origin.z + localZ
         const biomeCell = terrainMap.getBiomeCell(sampleX, sampleZ)
-        const biome = this.biomeRegistry.get(biomeCell.biomeId)
         const surfaceCell = terrainMap.getSurfaceCell(sampleX, sampleZ)
+        let rules = biomeRules.get(biomeCell.biomeId)
+        if (!rules) {
+          rules = this.preparePlacementRules(this.biomeRegistry.get(biomeCell.biomeId))
+          biomeRules.set(biomeCell.biomeId, rules)
+        }
 
-        for (const rule of biome.prefabs) {
-          const prefab = this.prefabRegistry.get(rule.id)
-          if (!prefab) {
-            continue
-          }
-
+        for (const { rule, prefab, variantEntries } of rules) {
           if (!canPlacePrefab(rule, prefab.entry, biomeCell, surfaceCell)) {
             continue
           }
@@ -92,7 +110,7 @@ export default class PrefabPlacer {
             continue
           }
 
-          const variantIndex = pickVariantIndex(prefab.entry, worldX, worldZ, seed)
+          const variantIndex = pickVariantIndex(prefab.entry, worldX, worldZ, seed, variantEntries)
           const placementHeight = surfaceCell.isWater
             ? this.config.terrain.waterLevel
             : surfaceCell.height
@@ -256,11 +274,12 @@ export default class PrefabPlacer {
       this.populateInstancedMesh(
         mesh,
         child,
-        transforms.slice(0, instanceCount),
+        transforms,
         prefabEntry,
         biomeId,
         meshContext.biome,
         instanceColors,
+        instanceCount,
       )
     })
 
@@ -330,18 +349,19 @@ export default class PrefabPlacer {
     }
   }
 
-  populateInstancedMesh(mesh, child, transforms, prefabEntry, biomeId, biome, instanceColors) {
+  populateInstancedMesh(mesh, child, transforms, prefabEntry, biomeId, biome, instanceColors, instanceCount = transforms.length) {
     const isTree = prefabEntry.category === 'tree'
     const usesInstanceColor = instanceColors
       ? matchesInstanceColorMesh(child.name, instanceColors.meshNameSuffix)
       : false
 
-    const anchorCount = transforms.length * 2
+    const anchorCount = instanceCount * 2
     if (!mesh.userData.chunkColumnPositions || mesh.userData.chunkColumnPositions.length < anchorCount) {
       mesh.userData.chunkColumnPositions = new Float32Array(anchorCount)
     }
 
-    transforms.forEach((t, i) => {
+    for (let i = 0; i < instanceCount; i++) {
+      const t = transforms[i]
       mesh.userData.chunkColumnPositions[i * 2] = t.position[0]
       mesh.userData.chunkColumnPositions[i * 2 + 1] = t.position[2]
       this._position.fromArray(t.position)
@@ -358,6 +378,7 @@ export default class PrefabPlacer {
           t.y ?? 0,
           t.z ?? 0,
           this.config.seed,
+          this._color,
         )
         if (treeColor) {
           mesh.setColorAt(i, treeColor)
@@ -369,9 +390,9 @@ export default class PrefabPlacer {
           : 0
         mesh.setColorAt(i, instanceColors.palette[colorIndex] ?? instanceColors.palette[0])
       }
-    })
+    }
 
-    mesh.count = transforms.length
+    mesh.count = instanceCount
     mesh.instanceMatrix.needsUpdate = true
     mesh.computeBoundingSphere()
     if (mesh.boundingBox) {

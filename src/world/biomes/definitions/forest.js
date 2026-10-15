@@ -55,6 +55,12 @@ export default {
       ],
     },
   },
+  trees: {
+    leafColor: '#2e8b3c',
+    trunkColor: '#6e4a28',
+    // Keys match tree variant sources; omitted sources have zero weight.
+    variantWeights: { treeModel: 1, fruitTreeModel: 1, cTreeModel: 1 },
+  },
   prefabs: [
     { id: 'tree', density: 0.015, minHeight: 4, maxSlope: 2 },
     { id: 'commonRock', density: 0.0175, minHeight: 4, maxSlope: 2 },

@@ -56,6 +56,12 @@ export default {
       ],
     },
   },
+  trees: {
+    leafColor: '#df6827',
+    trunkColor: '#7a4b24',
+    // Placement density and priority remain in prefabs below.
+    variantWeights: { treeModel: 1, fruitTreeModel: 1, cTreeModel: 1 },
+  },
   prefabs: [
     { id: 'tree', density: 0.0125, minHeight: 4, maxSlope: 2 },
     { id: 'commonRock', density: 0.02, minHeight: 4, maxSlope: 2 },

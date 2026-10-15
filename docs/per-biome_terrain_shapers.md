@@ -56,6 +56,7 @@ flowchart LR
    - 站点：世界被划分为边长 `cellSize` 的网格，网格坐标 `(gx, gz)` 用 [src/utils/random.js](src/utils/random.js) 的 `random01(gx, gz, seed + k)` 生成：
      - 站点位置：`((gx + 0.5 + (r1 - 0.5) * jitter) * cellSize, ...)`。
      - 站点 biome：`pickWeighted(table, r3)`。
+     - 当总权重大于 0 时，权重为 `0` 的条目不会被选中，包括 `r3 === 0` 的边界情况。
      - 如果 `originBiome` 有值，则 `(0, 0)` 所在网格强制使用该 biome，从而保留“出生点是 autumnForest”的现有设定。
    - 采样：先对 `(x, z)` 做低频 domain warp（使用 `createNoise2D(mulberry32(seed + offset))`，振幅为 `warp.amplitude`），避免 Voronoi 出现直线多边形边界。先遍历 3x3 邻域网格的站点，求出各站点的距离 `d_i` 和最小距离 `d1`，再按 `d1 + blendWidth` 与 jitter 的位置范围补查外圈站点，避免大 jitter 或宽混合时在网格切换处漏掉有贡献的站点。
    - 权重：`w_i = smoothstep(1, 0, (d_i - d1) / blendWidth)`，按 biome id 累加后归一化。距离差超过 `blendWidth` 的站点权重自然为 0，所以结果很稀疏，并且在三岔口等任何位置都连续，不会因为 top-2 截断而跳变。
