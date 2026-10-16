@@ -11,7 +11,7 @@ export default class WorldCamera {
     this.sizes = sizes
     this.canvas = canvas
 
-    this._frustumHeight = 15 / 2
+    this._frustumHeight = 6.4
 
     const aspect = sizes.width / sizes.height
     this.instance = new THREE.OrthographicCamera(
