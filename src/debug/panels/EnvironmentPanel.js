@@ -13,6 +13,13 @@ export function createEnvironmentPanel(debug, environment) {
     environment.syncEnvironmentIntensity()
   })
 
+  folder.addBinding(environment, 'backgroundColor', {
+    label: 'background',
+    view: 'color',
+  }).on('change', () => {
+    environment.syncBackground()
+  })
+
   folder.addBinding(environment, 'useEnvBackground', {
     label: 'envBackground',
   }).on('change', () => {

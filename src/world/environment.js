@@ -16,6 +16,8 @@ const PLAYER_SHADOW_TARGET_OFFSET = new THREE.Vector3(
 const PLAYER_SHADOW_FAR_PADDING = 8
 const PLAYER_SHADOW_MIN_CAMERA_DEPTH
   = PLAYER_SHADOW_LIGHT_OFFSET.distanceTo(PLAYER_SHADOW_TARGET_OFFSET) + PLAYER_SHADOW_FAR_PADDING
+// Flat studio backdrop sampled from the reference image.
+const SOLID_BACKGROUND = '#6aca97'
 
 export default class Environment {
   /**
@@ -26,10 +28,11 @@ export default class Environment {
     this.envMap = null
     this.envMapRenderTarget = null
     this.disposed = false
-    this.environmentIntensity = 0.27
-    this.useEnvBackground = true
+    this.environmentIntensity = 0.3
+    this.useEnvBackground = false
+    this.backgroundColor = SOLID_BACKGROUND
     /** 0 = darker shadows, 1 = more ambient/env fill */
-    this.shadowFill = 0.25
+    this.shadowFill = 0.32
     this.shadowBounds = {
       halfExtent: 14,
       maxHeight: 10,
@@ -41,21 +44,22 @@ export default class Environment {
     this._shadowLightDirection = new THREE.Vector3()
     this.directionalTarget = { x: 12, y: 12, z: 12 }
 
-    this.ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.13)
+    this.ambientLight = new THREE.AmbientLight(0xDCECFF, 0.15)
     this.scene.add(this.ambientLight)
 
-    this.directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1.3)
+    this.directionalLight = new THREE.DirectionalLight(0xFFF7EA, 1.45)
     this.directionalLight.position.set(-8, 23, -10)
     this.directionalLight.castShadow = true
     this.directionalLight.shadow.mapSize.set(1024 * 2, 1024 * 2)
     this.directionalLight.shadow.bias = -0.0011
     this.directionalLight.shadow.normalBias = 0.035
-    this.directionalLight.shadow.radius = 0
+    this.directionalLight.shadow.radius = 2.0
     this.scene.add(this.directionalLight)
     this.scene.add(this.directionalLight.target)
 
-    this.clearColor = new THREE.Color('#333')
+    this.clearColor = new THREE.Color(this.backgroundColor)
     this.applyShadowFill()
+    this.syncBackground()
   }
 
   applyShadowFill() {
@@ -100,7 +104,10 @@ export default class Environment {
   }
 
   syncBackground() {
-    this.scene.background = this.useEnvBackground ? this.envMap : null
+    this.clearColor.set(this.backgroundColor)
+    this.scene.background = this.useEnvBackground && this.envMap
+      ? this.envMap
+      : this.clearColor
   }
 
   /**

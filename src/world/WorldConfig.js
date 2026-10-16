@@ -32,15 +32,15 @@ export const worldConfig = {
     ao: {
       enabled: true,
       previewGrayscale: false,
-      strength: 2,
-      min: 0.2,
+      strength: 2.2,
+      min: 0.18,
       /** Grid steps sampled along each of 8 directions. Max value must be ≤ chunks.halo. */
       sampleDistances: [1, 2, 4, 8],
       /** Softens far samples: atten = 1 / (1 + (dist - 1) * falloff). */
       distanceFalloff: 0.25,
-      creviceScale: 2.5,
-      horizonWeight: 0.61,
-      creviceWeight: 0.42,
+      creviceScale: 3.0,
+      horizonWeight: 0.58,
+      creviceWeight: 0.52,
     },
   },
   biomes: {

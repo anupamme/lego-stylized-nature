@@ -32,10 +32,11 @@ export function resolveTreeMaterial(mesh, biomeId, materialCache = new Map()) {
   if (!materialCache.has(cacheKey)) {
     materialCache.set(cacheKey, new THREE.MeshPhysicalMaterial({
       color: 0xFFFFFF,
-      roughness: 0.38,
+      roughness: 0.26,
       metalness: 0.0,
-      clearcoat: 0.3,
-      clearcoatRoughness: 0.22,
+      clearcoat: 0.65,
+      clearcoatRoughness: 0.12,
+      envMapIntensity: 0.75,
       ior: 1.5,
     }))
   }
