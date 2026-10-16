@@ -1,10 +1,13 @@
 import {
+  dot,
   float,
   Fn,
+  mix,
   pass,
   renderOutput,
   screenUV,
   smoothstep,
+  vec3,
   vec4,
 } from 'three/tsl'
 import * as THREE from 'three/webgpu'
@@ -22,12 +25,22 @@ import { TILT_SHIFT_DEFAULTS } from './postprocessing/tiltShiftConfig.js'
 const VIGNETTE_INNER = 0.22
 const VIGNETTE_OUTER = 0.92
 // Linear 0.6 converts to about sRGB 0.8, matching the previous corner darkening.
-const VIGNETTE_AMOUNT = 0.4
+const VIGNETTE_AMOUNT = 0.42
+const TOY_CONTRAST_STRENGTH = 0.18
+const TOY_SATURATION = 1.22
+const LUMA_WEIGHTS = vec3(0.2126, 0.7152, 0.0722)
 
 const applyVignette = Fn(() => {
   const dist = screenUV.sub(0.5).length().mul(1.42)
   const mask = smoothstep(VIGNETTE_INNER, VIGNETTE_OUTER, dist)
   return float(1.0).sub(mask.mul(VIGNETTE_AMOUNT))
+})
+
+const applyToyGrade = Fn(([rgb]) => {
+  const clamped = rgb.clamp(0.0, 1.0)
+  const contrasted = mix(clamped, smoothstep(0.0, 1.0, clamped), TOY_CONTRAST_STRENGTH)
+  const luma = dot(contrasted, LUMA_WEIGHTS)
+  return mix(vec3(luma), contrasted, TOY_SATURATION).max(0.0)
 })
 
 export default class Renderer {
@@ -63,12 +76,13 @@ export default class Renderer {
       canvas,
       forceWebGL: false,
       trackTimestamp,
+      antialias: true,
     })
     this.instance.outputColorSpace = THREE.SRGBColorSpace
     this.instance.toneMapping = THREE.ACESFilmicToneMapping
-    this.instance.toneMappingExposure = 1.2
+    this.instance.toneMappingExposure = 1.22
     this.instance.shadowMap.enabled = true
-    this.instance.shadowMap.type = THREE.BasicShadowMap
+    this.instance.shadowMap.type = THREE.PCFSoftShadowMap
     // Count all scene, shadow and postprocessing passes in one game frame.
     this.instance.info.autoReset = false
 
@@ -152,7 +166,8 @@ export default class Renderer {
 
   createFinalOutput(sceneColor) {
     const color = renderOutput(sceneColor, this.instance.toneMapping, THREE.LinearSRGBColorSpace)
-    const vignetted = vec4(color.rgb.mul(applyVignette()), color.a)
+    const graded = applyToyGrade(color.rgb)
+    const vignetted = vec4(graded.mul(applyVignette()), color.a)
     return renderOutput(vignetted, THREE.NoToneMapping, THREE.SRGBColorSpace)
   }
 

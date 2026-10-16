@@ -14,11 +14,11 @@ import { createPostProcessingPanel } from '../src/debug/panels/PostProcessingPan
 
 test('defines the approved tilt-shift defaults and debug ranges', () => {
   assert.deepEqual(TILT_SHIFT_DEFAULTS, {
-    enabled: false,
-    focusCenter: 0.61,
-    focusWidth: 0.33,
-    falloff: 0.30,
-    blurStrength: 0.45
+    enabled: true,
+    focusCenter: 0.55,
+    focusWidth: 0.22,
+    falloff: 0.32,
+    blurStrength: 1.35
   })
 
   assert.deepEqual(TILT_SHIFT_RANGES, {

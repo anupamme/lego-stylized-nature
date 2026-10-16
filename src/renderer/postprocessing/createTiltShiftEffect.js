@@ -1,14 +1,20 @@
 import { gaussianBlur } from 'three/addons/tsl/display/GaussianBlurNode.js'
 import {
+  dot,
+  float,
   mix,
   screenUV,
   smoothstep,
   uniform,
+  vec3,
+  vec4,
 } from 'three/tsl'
 import { TILT_SHIFT_DEFAULTS } from './tiltShiftConfig.js'
 
 const BLUR_RESOLUTION_SCALE = 0.25
 const BLUR_SIGMA = 4
+const LUMA_WEIGHTS = vec3(0.2126, 0.7152, 0.0722)
+const BOKEH_HIGHLIGHT_BOOST = 0.35
 
 export function createTiltShiftEffect(
   sceneColor,
@@ -43,7 +49,13 @@ export function createTiltShiftEffect(
     clearEdge.add(uniforms.falloff),
     distance,
   )
-  const enabledOutput = mix(sceneColor, blurNode, blurMask)
+  const blurLuma = dot(blurNode.rgb, LUMA_WEIGHTS)
+  const bokehHighlight = smoothstep(0.65, 1.8, blurLuma)
+  const bokehColor = vec4(
+    blurNode.rgb.mul(float(1).add(bokehHighlight.mul(BOKEH_HIGHLIGHT_BOOST))),
+    blurNode.a,
+  )
+  const enabledOutput = mix(sceneColor, bokehColor, blurMask)
 
   let disposed = false
 
