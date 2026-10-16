@@ -11,6 +11,7 @@ import BiomeMaskGenerator from './biomes/BiomeMaskGenerator.js'
 import BiomeRegistry from './biomes/BiomeRegistry.js'
 import BrickColorResolver from './bricks/BrickColorResolver.js'
 import { extractBrickGeometry } from './bricks/BrickGeometry.js'
+import BrickLOD from './bricks/BrickLOD.js'
 import HeightfieldAO from './bricks/HeightfieldAO.js'
 import LavaBrickRenderer from './bricks/LavaBrickRenderer.js'
 import TerrainBrickRenderer from './bricks/TerrainBrickRenderer.js'
@@ -44,6 +45,7 @@ export default class World {
     this.terrainPlacements = []
 
     this.brickGeometry = null
+    this.brickLOD = null
     this.materials = null
     this.biomeRegistry = null
     this.biomeBlender = null
@@ -82,6 +84,8 @@ export default class World {
       console.warn('[World] Missing brick geometry; terrain render skipped.')
       return
     }
+
+    this.brickLOD ??= new BrickLOD(this.brickGeometry, this.config.terrain.brickLOD)
 
     if (!this.terrainGenerator) {
       this.biomeRegistry = new BiomeRegistry()
@@ -329,6 +333,11 @@ export default class World {
     else if (this.terrainChunkManager) {
       this.terrainChunkManager.updateTransitions(this.experience.time.getDelta())
     }
+    this.brickLOD?.update(
+      this.group,
+      this.experience.worldCamera.instance,
+      this.experience.renderer?.instance,
+    )
   }
 
   measurePrefabShadowBounds() {
@@ -400,6 +409,8 @@ export default class World {
     this.prefabRegistry?.dispose?.()
     this.materials?.dispose()
     this.materials = null
+    this.brickLOD?.dispose()
+    this.brickLOD = null
     this.brickGeometry?.dispose()
     this.brickGeometry = null
     this.terrainMap = null

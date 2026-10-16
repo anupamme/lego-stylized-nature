@@ -1,6 +1,7 @@
 import { SPEED_LINES_DEFAULTS } from '../renderer/postprocessing/speedLinesConfig.js'
 import { TILT_SHIFT_DEFAULTS } from '../renderer/postprocessing/tiltShiftConfig.js'
 import { createTerrainColorSettings } from './bricks/terrainColorScheme.js'
+import { BRICK_LOD_DEFAULTS } from './bricks/BrickLOD.js'
 import { CHUNK_TRANSITION_DEFAULTS } from './chunks/ChunkColumnTransition.js'
 
 export const worldConfig = {
@@ -19,6 +20,7 @@ export const worldConfig = {
     maxHeight: 64,
     layerHeight: 0.095,
     cellSize: 0.2,
+    brickLOD: { ...BRICK_LOD_DEFAULTS },
     waterLevel: 3,
     noiseScale: 72,
     noiseOctaves: 4,
