@@ -1,5 +1,6 @@
 import { SPEED_LINES_DEFAULTS } from '../renderer/postprocessing/speedLinesConfig.js'
 import { TILT_SHIFT_DEFAULTS } from '../renderer/postprocessing/tiltShiftConfig.js'
+import { STUD_SHADING_DEFAULTS } from '../materials/tsl/legoStudsConfig.js'
 import { createTerrainColorSettings } from './bricks/terrainColorScheme.js'
 import { BRICK_LOD_DEFAULTS } from './bricks/BrickLOD.js'
 import { CHUNK_TRANSITION_DEFAULTS } from './chunks/ChunkColumnTransition.js'
@@ -21,6 +22,7 @@ export const worldConfig = {
     layerHeight: 0.095,
     cellSize: 0.2,
     brickLOD: { ...BRICK_LOD_DEFAULTS },
+    studShading: { ...STUD_SHADING_DEFAULTS },
     waterLevel: 3,
     noiseScale: 72,
     noiseOctaves: 4,

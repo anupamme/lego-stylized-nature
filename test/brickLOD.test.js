@@ -29,9 +29,12 @@ function cameraAt(x = 0, y = 10, z = 0) {
 const triangleCount = geometry => (geometry.index?.count ?? geometry.attributes.position.count) / 3
 
 test('authored brick LOD reduces triangles and removes studs without opening the deck', () => {
-  const { geometries, studDiameter } = createBrickLODGeometries(source)
+  const { geometries, studDiameter, studLayout } = createBrickLODGeometries(source)
   assert.deepEqual(geometries.map(triangleCount), [172, 92, 20])
   assert.ok(studDiameter > 0.06 && studDiameter < 0.061)
+  assert.ok(Math.abs(studLayout.pitch - 0.1) < 1e-4)
+  assert.ok(Math.abs(studLayout.originX + 0.05) < 1e-4 && Math.abs(studLayout.originZ + 0.05) < 1e-4)
+  assert.ok(Math.abs(studLayout.deckY - 0.101053) < 1e-6)
   const [full, simplified, body] = geometries
   const point = new THREE.Vector3()
   for (const geometry of [simplified, body]) {

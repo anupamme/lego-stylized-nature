@@ -110,6 +110,7 @@ export default class World {
         config: this.config,
         waterNoiseTexture: resources.items.waterNoiseTexture,
         lavaConfig: this.biomeRegistry.get('volcano').lava,
+        studLayout: this.brickLOD.studLayout,
       })
 
       const prefabRegistry = new PrefabRegistry(resources)

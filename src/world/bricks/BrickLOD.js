@@ -47,7 +47,7 @@ export function createBrickLODGeometries(source) {
   // Keep unfamiliar assets intact (also allows plain-box test fixtures).
   if (studs.some(bounds => bounds.isEmpty())) {
     flat.dispose()
-    return { geometries: [source], studDiameter: 0 }
+    return { geometries: [source], studDiameter: 0, studLayout: null }
   }
 
   for (let i = 0; i < position.count; i += 3) {
@@ -93,7 +93,15 @@ export function createBrickLODGeometries(source) {
     geometry.boundingBox = source.boundingBox.clone()
     geometry.boundingSphere = source.boundingSphere.clone()
   }
-  return { geometries: [source, simplified, body], studDiameter }
+  const origin = studs[0].getCenter(a)
+  const studLayout = {
+    deckY,
+    pitch: studs[1].getCenter(b).x - origin.x,
+    originX: origin.x,
+    originZ: origin.z,
+    radius: studDiameter * 0.5,
+  }
+  return { geometries: [source, simplified, body], studDiameter, studLayout }
 }
 
 // Smallest projected diameter of a horizontal stud disk, in render-buffer pixels.

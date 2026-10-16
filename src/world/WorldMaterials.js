@@ -8,9 +8,9 @@ import { resolveTreeMaterial } from './prefabs/treeMaterial.js'
 
 // The World owns these materials; slots and warmup meshes only borrow them.
 export default class WorldMaterials {
-  constructor({ config = {}, waterNoiseTexture = null, lavaConfig = {} } = {}) {
+  constructor({ config = {}, waterNoiseTexture = null, lavaConfig = {}, studLayout = null } = {}) {
     const waterConfig = config.water ?? {}
-    this.legoMaterial = createLegoMaterial()
+    this.legoMaterial = createLegoMaterial({ studs: studLayout, studShading: config.terrain?.studShading })
     this.previewMaterial = new THREE.MeshBasicNodeMaterial()
     this.waterMaterial = createWaterMaterial(waterConfig, waterNoiseTexture)
     this.lavaMaterial = createLavaMaterial({

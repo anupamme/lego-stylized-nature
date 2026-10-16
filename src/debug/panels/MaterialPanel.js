@@ -1,3 +1,6 @@
+import { syncLegoStudShading } from '../../materials/tsl/legoMaterial.js'
+import { STUD_SHADING_DEFAULTS, STUD_SHADING_RANGES } from '../../materials/tsl/legoStudsConfig.js'
+
 export function createMaterialPanel(
   debug,
   config,
@@ -25,6 +28,35 @@ export function createMaterialPanel(
     legoFolder.addBinding(legoMaterial, 'sheen', { min: 0, max: 1, step: 0.01, label: 'sheen' })
     legoFolder.addBinding(legoMaterial, 'sheenRoughness', { min: 0, max: 1, step: 0.01, label: 'sheenRoughness' })
     legoFolder.addBinding(legoMaterial, 'metalness', { min: 0, max: 1, step: 0.01, label: 'metalness' })
+    const studs = legoMaterial.userData.studs
+    if (studs) {
+      config.terrain ??= {}
+      const settings = config.terrain.studShading ??= { ...STUD_SHADING_DEFAULTS }
+      const studFolder = legoFolder.addFolder({ title: 'Stud Detail', expanded: true })
+      const syncStuds = () => {
+        Object.assign(settings, syncLegoStudShading(legoMaterial, settings))
+        debug.ui?.refresh()
+      }
+      syncStuds()
+      studFolder.addBinding(settings, 'enabled', { label: 'Enabled' }).on('change', syncStuds)
+      const labels = {
+        strength: 'Strength',
+        radiusScale: 'Radius scale',
+        topBrighten: 'Top brighten',
+        shadow: 'Contact shadow',
+        shadowWidth: 'Shadow width',
+        rimWidth: 'Rim width',
+        tilt: 'Rim tilt',
+        fadeStart: 'Fade start',
+        fadeEnd: 'Fade end',
+      }
+      for (const [key, range] of Object.entries(STUD_SHADING_RANGES))
+        studFolder.addBinding(settings, key, { ...range, label: labels[key] }).on('change', syncStuds)
+      studFolder.addButton({ title: 'Reset defaults' }).on('click', () => {
+        Object.assign(settings, STUD_SHADING_DEFAULTS)
+        syncStuds()
+      })
+    }
   }
 
   if (waterMaterial) {
