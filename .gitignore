@@ -7,6 +7,7 @@ dist
 /test/*
 !/test/brickLOD.test.js
 !/test/legoStudShading.test.js
+!/test/natureBiomes.test.js
 !/test/chunkColumnTransition.test.js
 !/test/prefabReveal.test.js
 !/test/prefabRenderPreparation.test.js

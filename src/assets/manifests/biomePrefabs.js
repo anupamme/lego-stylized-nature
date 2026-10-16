@@ -38,6 +38,9 @@ export const biomePrefabs = {
       autumnForest: { color: '#958970', strength: 0.45 },
       desert: { color: '#c4a481', strength: 0.55 },
       volcano: { color: '#48464a', strength: 0.65 },
+      snowForest: { color: '#a8c8dc', strength: 0.7 },
+      meadow: { color: '#d3c4b4', strength: 0.7 },
+      wetland: { color: '#647d6c', strength: 0.65 },
     },
   },
   volcanoRock: {
@@ -55,7 +58,7 @@ export const biomePrefabs = {
   },
   tree: {
     category: 'tree',
-    placement: { surface: 'land', biomes: ['forest', 'autumnForest'] },
+    placement: { surface: 'land', biomes: ['forest', 'autumnForest', 'meadow'] },
     variants: [
       { source: 'treeModel', weight: 1 },
       { source: 'fruitTreeModel', weight: 1 },
@@ -99,6 +102,8 @@ export const biomePrefabs = {
       forest: { color: '#67b65d', strength: 0.35 },
       autumnForest: { color: '#cfa04c', strength: 0.75 },
       desert: { color: '#d2b77f', strength: 1 },
+      meadow: { color: '#c5b98b', strength: 0.9 },
+      wetland: { color: '#5d9274', strength: 0.8 },
     },
   },
   landMushroom: {
@@ -123,6 +128,47 @@ export const biomePrefabs = {
     instanceColors: {
       meshNameSuffix: '_InstanceColor',
       palette: ['#ff1111', '#ffff00', '#ffffff'],
+    },
+  },
+  snowPine: {
+    category: 'tree',
+    placement: { surface: 'land', biomes: ['snowForest'] },
+    variants: [
+      { builder: 'snowPine', weight: 2 },
+      { builder: 'snowPine', params: { scale: 0.75 }, weight: 1 },
+    ],
+    randomRotation: true,
+  },
+  iceCluster: {
+    category: 'rock',
+    placement: { surface: 'land', biomes: ['snowForest'] },
+    variants: [{ builder: 'iceCluster', weight: 1 }],
+    randomRotation: true,
+  },
+  meadowFlower: {
+    category: 'flora',
+    placement: { surface: 'land', biomes: ['meadow'] },
+    variants: [{ builder: 'flower', params: { stemColor: '#89916b' }, weight: 1 }],
+    randomRotation: true,
+    instanceColors: {
+      meshNameSuffix: '_InstanceColor',
+      palette: ['#f4bf4f', '#fff4df', '#a58bd0', '#d985ad'],
+    },
+  },
+  wetlandTree: {
+    category: 'tree',
+    placement: { surface: 'land', biomes: ['wetland'] },
+    variants: [{ builder: 'wetlandTree', weight: 1 }],
+    randomRotation: true,
+  },
+  waterLily: {
+    category: 'waterPlant',
+    placement: { surface: 'water', biomes: ['wetland'] },
+    variants: [{ builder: 'waterLily', weight: 1 }],
+    randomRotation: true,
+    instanceColors: {
+      meshNameSuffix: '_InstanceColor',
+      palette: ['#f1b4cf', '#fff1dd', '#d6b6e8'],
     },
   },
 }

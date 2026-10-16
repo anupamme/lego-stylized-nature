@@ -1,6 +1,6 @@
-import { pickWeighted, random01, snapValue } from '../../utils/random.js'
+import { pickWeighted, placementRandom01, random01, snapValue } from '../../utils/random.js'
 
-export function canPlacePrefab(rule, manifestEntry, biomeCell, surfaceCell) {
+export function canPlacePrefab(rule, manifestEntry, biomeCell, surfaceCell, waterLevel = 0) {
   const placement = manifestEntry.placement ?? {}
 
   if (surfaceCell.isLava) {
@@ -12,7 +12,7 @@ export function canPlacePrefab(rule, manifestEntry, biomeCell, surfaceCell) {
   if (placement.surface === 'land' && surfaceCell.isWater) {
     return false
   }
-  if (placement.surface === 'land' && surfaceCell.isShore) {
+  if (placement.surface === 'land' && surfaceCell.isShore && !rule.allowShore) {
     return false
   }
   if (placement.biomes && !placement.biomes.includes(biomeCell.biomeId)) {
@@ -24,7 +24,36 @@ export function canPlacePrefab(rule, manifestEntry, biomeCell, surfaceCell) {
   if (rule.maxSlope !== undefined && surfaceCell.slope > rule.maxSlope) {
     return false
   }
+  if (surfaceCell.isWater && rule.maxWaterDepth !== undefined
+    && waterLevel - surfaceCell.height > rule.maxWaterDepth) {
+    return false
+  }
   return true
+}
+
+// Smooth world-space value noise keeps plant patches continuous across chunks.
+// Rules without patches preserve their original uniform distribution.
+export function samplePlacementDensity(rule, x, z, seed) {
+  if (!rule.patch) {
+    return rule.density
+  }
+  const { scale, minDensity = 0 } = rule.patch
+  const gx = Math.floor(x / scale)
+  const gz = Math.floor(z / scale)
+  const tx = smoothstep(x / scale - gx)
+  const tz = smoothstep(z / scale - gz)
+  const salt = `${rule.id}:patch`
+  const a = placementRandom01(gx, gz, seed, salt)
+  const b = placementRandom01(gx + 1, gz, seed, salt)
+  const c = placementRandom01(gx, gz + 1, seed, salt)
+  const d = placementRandom01(gx + 1, gz + 1, seed, salt)
+  const noise = (a + (b - a) * tx) * (1 - tz) + (c + (d - c) * tx) * tz
+  const coverage = smoothstep(Math.max(0, Math.min(1, (noise - 0.35) / 0.3)))
+  return minDensity + (rule.density - minDensity) * coverage
+}
+
+function smoothstep(t) {
+  return t * t * (3 - 2 * t)
 }
 
 export function createVariantEntries(manifestEntry, variantWeights = null) {

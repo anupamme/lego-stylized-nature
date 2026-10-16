@@ -28,7 +28,7 @@ const ARMS = [
   { kind: 'flower', azimuth: (5 * Math.PI) / 3, reach: 0.078, rise: 0.112 },
 ]
 
-export function buildFlower() {
+export function buildFlower({ stemColor = LEGO_COLORS.green } = {}) {
   const root = [
     cylinder({ radius: 0.046, height: BASE_HEIGHT, segments: 8 }),
     stud().translate(0, BASE_HEIGHT, 0),
@@ -59,7 +59,7 @@ export function buildFlower() {
   }
 
   return makePrefabScene([
-    { name: 'flower_root', color: LEGO_COLORS.green, parts: root },
+    { name: 'flower_root', color: stemColor, parts: root },
     { name: 'flower_InstanceColor', color: LEGO_COLORS.white, parts: heads },
   ])
 }

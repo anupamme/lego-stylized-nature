@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { placementRandom01 } from '../../utils/random.js'
 import { getTerrainIterationBounds } from '../terrain/terrainMapBounds.js'
-import { canPlacePrefab, createVariantEntries, makePrefabTransform, pickVariantIndex } from './placementRules.js'
+import { canPlacePrefab, createVariantEntries, makePrefabTransform, pickVariantIndex, samplePlacementDensity } from './placementRules.js'
 import { getPrefabCapacity } from './prefabCapacity.js'
 import {
   matchesInstanceColorMesh,
@@ -102,11 +102,12 @@ export default class PrefabPlacer {
         }
 
         for (const { rule, prefab, variantEntries } of rules) {
-          if (!canPlacePrefab(rule, prefab.entry, biomeCell, surfaceCell)) {
+          if (!canPlacePrefab(rule, prefab.entry, biomeCell, surfaceCell, this.config.terrain.waterLevel)) {
             continue
           }
 
-          if (placementRandom01(worldX, worldZ, seed, rule.id) > rule.density) {
+          const density = samplePlacementDensity(rule, worldX, worldZ, seed)
+          if (placementRandom01(worldX, worldZ, seed, rule.id) >= density) {
             continue
           }
 

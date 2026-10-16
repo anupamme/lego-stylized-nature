@@ -36,6 +36,10 @@ export default class BiomeMaskGenerator {
 
     return {
       table: biomes.table.map(({ id, weight }) => ({ value: id, weight })),
+      regionScales: new Map(biomes.table.map(({ id, regionScale }) => [
+        id,
+        Number.isFinite(regionScale) ? Math.max(0.1, Math.min(1, regionScale)) : 1,
+      ])),
       // Reuse sites within a generation without retaining an unbounded world cache.
       sites: new Map(),
     }
@@ -50,9 +54,9 @@ export default class BiomeMaskGenerator {
       site = {
         x: (gx + 0.5 + (random01(gx, gz, seed + 1) - 0.5) * jitter) * cellSize,
         z: (gz + 0.5 + (random01(gx, gz, seed + 2) - 0.5) * jitter) * cellSize,
-        biomeId: gx === 0 && gz === 0 && originBiome
+        biomeId: biomes.previewBiome || (gx === 0 && gz === 0 && originBiome
           ? originBiome
-          : pickWeighted(context.table, random01(gx, gz, seed + 3)),
+          : pickWeighted(context.table, random01(gx, gz, seed + 3))),
       }
       context.sites.set(key, site)
     }
@@ -70,8 +74,10 @@ export default class BiomeMaskGenerator {
     const addSite = (sx, sz) => {
       const site = this.getSite(sx, sz, context)
       const distance = Math.hypot(warpedX - site.x, warpedZ - site.z)
-      candidates.push({ ...site, distance })
-      nearestDistance = Math.min(nearestDistance, distance)
+      const regionScale = this.config.biomes.previewBiome ? 1 : context.regionScales.get(site.biomeId) ?? 1
+      const influenceDistance = distance / regionScale
+      candidates.push({ ...site, distance, influenceDistance })
+      nearestDistance = Math.min(nearestDistance, influenceDistance)
     }
 
     for (let sz = gz - 1; sz <= gz + 1; sz++) {
@@ -82,6 +88,8 @@ export default class BiomeMaskGenerator {
 
     // A fixed 3x3 search can drop a contributing site at a grid boundary.
     // Include every grid whose jittered site can lie within the blend cutoff.
+    // regionScale <= 1 guarantees actual distances never exceed influence distances,
+    // so this world-space search also covers all weighted contributors.
     const cutoff = nearestDistance + blendWidth
     const minX = Math.ceil((warpedX - cutoff) / cellSize - 0.5 - jitter / 2)
     const maxX = Math.floor((warpedX + cutoff) / cellSize - 0.5 + jitter / 2)
@@ -98,10 +106,10 @@ export default class BiomeMaskGenerator {
     const weights = {}
     const sites = {}
     let total = 0
-    for (const { biomeId, x: siteX, z: siteZ, distance } of candidates) {
+    for (const { biomeId, x: siteX, z: siteZ, distance, influenceDistance } of candidates) {
       const t = blendWidth > 0
-        ? Math.min(1, Math.max(0, (distance - nearestDistance) / blendWidth))
-        : distance === nearestDistance ? 0 : 1
+        ? Math.min(1, Math.max(0, (influenceDistance - nearestDistance) / blendWidth))
+        : influenceDistance === nearestDistance ? 0 : 1
       const weight = 1 - t * t * (3 - 2 * t)
       if (weight <= 0)
         continue

@@ -49,11 +49,16 @@ export const worldConfig = {
     blendWidth: 48,
     warp: { amplitude: 80, scale: 320 },
     originBiome: 'autumnForest',
+    previewBiome: '',
     table: [
       { id: 'forest', weight: 4 },
       { id: 'autumnForest', weight: 3 },
       { id: 'desert', weight: 2 },
       { id: 'volcano', weight: 1 },
+      { id: 'snowForest', weight: 2 },
+      // Compact flower hills rather than another forest-sized region.
+      { id: 'meadow', weight: 2, regionScale: 0.6 },
+      { id: 'wetland', weight: 2 },
     ],
   },
   placement: {
@@ -67,7 +72,7 @@ export const worldConfig = {
       rock: 512,
       plant: 256,
       waterAccent: 64,
-      waterPlant: 64,
+      waterPlant: 256,
       prop: 128,
     },
   },
